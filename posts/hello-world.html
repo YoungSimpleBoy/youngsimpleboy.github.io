@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>GitHub Pages 博客搭建指南 - YoungSimpleBoy 的博客</title>
+<link href="../style.css" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://cdn.jsdelivr.net/npm/katex/dist/katex.min.css" rel="stylesheet"/><link href="https://cdn.jsdelivr.net/npm/katex-copytex@latest/dist/katex-copytex.min.css" rel="stylesheet" type="text/css"/><script async="" src="https://cdn.jsdelivr.net/npm/katex-copytex@latest/dist/katex-copytex.min.js"></script>
+<script>
+(function() {
+var savedTheme = localStorage.getItem('theme');
+if (savedTheme === 'light') {
+document.documentElement.classList.add('light');
+} else {
+document.documentElement.classList.remove('light');
+}
+})();
+</script>
+</head>
+<body>
+<header class="header">
+<nav class="nav-container">
+<a class="logo" href="../index.html">~/blog</a>
+<ul class="nav-links">
+<li><a class="nav-link" href="../index.html">文章</a></li>
+<li><a class="nav-link" href="../index.html#tags">标签</a></li>
+<li><a class="nav-link" href="../index.html#about">关于</a></li>
+<li><button aria-label="切换主题" class="theme-toggle">
+<svg class="sun-icon" fill="none" height="18" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24" width="18">
+<circle cx="12" cy="12" r="5"></circle>
+<line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line>
+<line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line>
+<line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line>
+<line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line>
+</svg>
+<svg class="moon-icon" fill="none" height="18" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24" width="18">
+<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+</svg>
+</button></li></ul>
+</nav>
+</header>
+<main class="main-content article-content">
+<article class="article">
+<header class="article-header">
+<div class="article-meta">
+<time datetime="2026-03-12">2026-03-12</time>
+<span class="article-category">技术教程</span>
+</div>
+<h1 class="article-title">GitHub Pages 博客搭建指南</h1>
+<div class="article-tags"><span class="tag">前端</span></div>
+
+<div class="article-body">
+<p>网页由minmax生成，感谢伟大的C语言开源。</p>
+
+<p>本文档详细介绍如何使用 GitHub Pages 搭建个人博客，完全使用 HTML 文件，无需 Jekyll 或其他静态网站生成器。</p>
+
+<h2>一、创建 GitHub 仓库</h2>
+<p>登录 GitHub，点击右上角 "+" → "New repository"，仓库名称填写：<code>你的用户名.github.io</code>，选择 Public，点击 "Create repository"。</p>
+
+<div class="note">
+注意：仓库名称必须是 <code>用户名.github.io</code> 格式，例如 <code>youngsimpleboy.github.io</code>
+</div>
+
+<h2>二、上传博客文件</h2>
+<p>文件结构如下：</p>
+<pre><code>你的仓库/
+├── index.html          # 首页
+├── style.css          # 样式文件
+├── script.js          # 脚本文件
+├── avatar.png         # 头像图片
+└── posts/             # 文章文件夹</code></pre>
+
+<h2>三、启用 GitHub Pages</h2>
+<ol>
+<li>进入仓库 → Settings → Pages</li>
+<li>在 "Build and deployment" 部分，找到 "Source"</li>
+<li>选择 "Deploy from a branch"</li>
+<li>Branch 选择 "main"，目录选择 "/(root)"</li>
+<li>点击 "Save"</li>
+</ol>
+
+<h2>四、写新文章</h2>
+<p>在 <code>posts/</code> 文件夹中创建新的 HTML 文件，引用上级目录的样式表：</p>
+<pre><code>&lt;link rel="stylesheet" href="../style.css"&gt;</code></pre>
+
+<h2>五、主题切换</h2>
+<p>博客支持深色/浅色模式切换。点击导航栏中的太阳/月亮图标即可切换主题。主题设置会保存在浏览器本地，下次访问时自动记忆。</p>
+</div>
+
+<footer class="article-footer">
+<a href="../index.html" class="back-link">← 返回首页</a>
+</footer>
+</article>
+</main>
+
+<footer class="footer">
+<div class="footer-content">
+<div class="footer-links">
+<a href="https://github.com/YoungSimpleBoy">GitHub</a>
+<a href="mailto:2404716575@qq.com">E-mail</a>
+<a href="https://space.bilibili.com/52652807">bilibili</a>
+</div>
+<p class="copyright">© 2026 YoungSimpleBoy. All rights reserved.</p>
+</div>
+</footer>
+
+<script src="../script.js"></script>
+<script async="" src="https://cdn.jsdelivr.net/npm/katex-copytex@latest/dist/katex-copytex.min.js"></script>
+</body>
+</html>
