@@ -3,356 +3,93 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GitHub Pages 博客搭建指南</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            line-height: 1.8;
-            color: #333;
-            background: #f5f5f5;
-            padding: 2rem;
-        }
-        
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            background: white;
-            padding: 3rem;
-            border-radius: 12px;
-            box-shadow: 0 2px 20px rgba(0,0,0,0.1);
-        }
-        
-        h1 {
-            font-size: 2rem;
-            color: #2c3e50;
-            margin-bottom: 1.5rem;
-            padding-bottom: 1rem;
-            border-bottom: 3px solid #3498db;
-        }
-        
-        h2 {
-            font-size: 1.5rem;
-            color: #34495e;
-            margin: 2rem 0 1rem;
-        }
-        
-        h3 {
-            font-size: 1.2rem;
-            color: #555;
-            margin: 1.5rem 0 0.75rem;
-        }
-        
-        p {
-            margin-bottom: 1rem;
-        }
-        
-        ul, ol {
-            margin: 1rem 0 1rem 1.5rem;
-        }
-        
-        li {
-            margin-bottom: 0.5rem;
-        }
-        
-        code {
-            background: #f4f4f4;
-            padding: 0.2rem 0.5rem;
-            border-radius: 4px;
-            font-family: 'Consolas', 'Monaco', monospace;
-            font-size: 0.9em;
-            color: #e74c3c;
-        }
-        
-        pre {
-            background: #2c3e50;
-            color: #ecf0f1;
-            padding: 1.5rem;
-            border-radius: 8px;
-            overflow-x: auto;
-            margin: 1rem 0;
-        }
-        
-        pre code {
-            background: none;
-            padding: 0;
-            color: #ecf0f1;
-        }
-        
-        .note {
-            background: #fff3cd;
-            border-left: 4px solid #ffc107;
-            padding: 1rem;
-            margin: 1rem 0;
-            border-radius: 4px;
-        }
-        
-        .warning {
-            background: #f8d7da;
-            border-left: 4px solid #dc3545;
-            padding: 1rem;
-            margin: 1rem 0;
-            border-radius: 4px;
-        }
-        
-        .success {
-            background: #d4edda;
-            border-left: 4px solid #28a745;
-            padding: 1rem;
-            margin: 1rem 0;
-            border-radius: 4px;
-        }
-        
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 1rem 0;
-        }
-        
-        th, td {
-            border: 1px solid #ddd;
-            padding: 0.75rem;
-            text-align: left;
-        }
-        
-        th {
-            background: #3498db;
-            color: white;
-        }
-        
-        tr:nth-child(even) {
-            background: #f9f9f9;
-        }
-        
-        a {
-            color: #3498db;
-            text-decoration: none;
-        }
-        
-        a:hover {
-            text-decoration: underline;
-        }
-        
-        .step {
-            background: #e8f4fc;
-            padding: 1rem;
-            margin: 1rem 0;
-            border-radius: 8px;
-            border-left: 4px solid #3498db;
-        }
-        
-        @media (max-width: 600px) {
-            body {
-                padding: 1rem;
-            }
-            .container {
-                padding: 1.5rem;
-            }
-            h1 {
-                font-size: 1.5rem;
-            }
-        }
-    </style>
+    <title>GitHub Pages 博客搭建指南 - YoungSimpleBoy 的博客</title>
+    <link rel="stylesheet" href="../style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="container">
-        <h1>GitHub Pages 博客搭建指南</h1>
+    <header class="header">
+        <nav class="nav-container">
+            <a href="../index.html" class="logo">~/blog</a>
+            <ul class="nav-links">
+                <li><a href="../index.html" class="nav-link">文章</a></li>
+                <li><a href="../index.html#tags" class="nav-link">标签</a></li>
+                <li><a href="../index.html#about" class="nav-link">关于</a></li>
+            </ul>
+        </nav>
+    </header>
 
-        <p>本网页由minmax生成，感谢伟大的C语言开源。</p>
-      
-        <p>本文档详细介绍如何使用 GitHub Pages 搭建个人博客，完全使用 HTML 文件，无需 Jekyll 或其他静态网站生成器。</p>
-        
-        <div class="success">
-            <strong>博客地址：</strong> <a href="https://youngsimpleboy.github.io" target="_blank">https://youngsimpleboy.github.io</a>
-        </div>
-        
-        <h2>一、创建 GitHub 仓库</h2>
-        
-        <div class="step">
-            <h3>步骤 1：创建仓库</h3>
-            <ol>
-                <li>登录 <a href="https://github.com" target="_blank">GitHub</a></li>
-                <li>点击右上角 <strong>"+"</strong> → <strong>"New repository"</strong></li>
-                <li>仓库名称填写：<code>你的用户名.github.io</code></li>
-                <li>选择 <strong>Public</strong></li>
-                <li>点击 <strong>"Create repository"</strong></li>
-            </ol>
-        </div>
-        
-        <div class="note">
-            <strong>注意：</strong>仓库名称必须是 <code>用户名.github.io</code> 格式，例如 <code>youngsimpleboy.github.io</code>
-        </div>
-        
-        <h2>二、上传博客文件</h2>
-        
-        <h3>文件结构</h3>
-        <pre>你的仓库/
+    <main class="main-content article-content">
+        <article class="article">
+            <header class="article-header">
+                <div class="article-meta">
+                    <time datetime="2026-03-12">2026-03-12</time>
+                    <span class="article-category">技术教程</span>
+                </div>
+                <h1 class="article-title">GitHub Pages 博客搭建指南</h1>
+                <div class="article-tags">
+                    <span class="tag">博客</span>
+                    <span class="tag">建站</span>
+                </div>
+            </header>
+            
+            <div class="article-body">
+                <p>网页由minmax生成，感谢伟大的C语言开源。</p>
+
+                <p>本文档详细介绍如何使用 GitHub Pages 搭建个人博客，完全使用 HTML 文件，无需 Jekyll 或其他静态网站生成器。</p>
+
+                <h2>一、创建 GitHub 仓库</h2>
+                <p>登录 GitHub，点击右上角 "+" → "New repository"，仓库名称填写：<code>你的用户名.github.io</code>，选择 Public，点击 "Create repository"。</p>
+                
+                <div class="note">
+                    注意：仓库名称必须是 <code>用户名.github.io</code> 格式，例如 <code>youngsimpleboy.github.io</code>
+                </div>
+
+                <h2>二、上传博客文件</h2>
+                <p>文件结构如下：</p>
+                <pre><code>你的仓库/
 ├── index.html          # 首页
 ├── style.css          # 样式文件
 ├── script.js          # 脚本文件
-├── avatar.png         # 头像图片（可选）
-└── posts/             # 文章文件夹
-    └── hello-world.html     # 文章页面</pre>
-        
-        <h3>上传方式</h3>
-        <ol>
-            <li>进入仓库页面</li>
-            <li>点击 <strong>"Add file"</strong> → <strong>"Upload files"</strong></li>
-            <li>拖拽或选择要上传的文件</li>
-            <li>点击 <strong>"Commit changes"</strong> 提交</li>
-        </ol>
-        
-        <div class="warning">
-            <strong>重要：</strong>不要上传 <code>README.md</code> 文件，否则会覆盖 <code>index.html</code> 的显示！
-        </div>
-        
-        <h2>三、启用 GitHub Pages</h2>
-        
-        <div class="step">
-<ol>
-                <li>进入仓库 → <strong>Settings</strong> → <strong>Pages</strong></li>
-                <li>在 "Build and deployment" 部分，找到 "Source"</li>
-                <li>选择 <strong>"Deploy from a branch"</strong></li>
-                <li>Branch 选择 <strong>"main"</strong>，目录选择 <strong>"/(root)"</strong></li>
-                <li>点击 <strong>"Save"</strong></li>
-            </ol>
-        </div>
-        
-        <p>等待 1-2 分钟，访问 <code>https://你的用户名.github.io</code> 即可看到博客。</p>
-        
-        <h2>四、文件说明</h2>
-        
-        <table>
-            <tr>
-                <th>文件</th>
-                <th>说明</th>
-            </tr>
-            <tr>
-                <td><code>index.html</code></td>
-                <td>博客首页，显示文章列表</td>
-            </tr>
-            <tr>
-                <td><code>style.css</code></td>
-                <td>样式文件，控制页面外观</td>
-            </tr>
-            <tr>
-                <td><code>script.js</code></td>
-                <td>脚本文件，实现交互功能（深色模式等）</td>
-            </tr>
-            <tr>
-                <td><code>avatar.png</code></td>
-                <td>头像图片，显示在首页简介处</td>
-            </tr>
-            <tr>
-                <td><code>posts/</code></td>
-                <td>存放文章 HTML 文件的文件夹</td>
-            </tr>
-        </table>
-        
-        <h2>五、写新文章</h2>
-        
-        <h3>1. 创建文章文件</h3>
-        <p>在 <code>posts/</code> 文件夹中创建新的 HTML 文件，例如 <code>posts/new-article.html</code>：</p>
-        
-        <pre><code>&lt;!DOCTYPE html&gt;
-&lt;html lang="zh-CN"&gt;
-&lt;head&gt;
-    &lt;meta charset="UTF-8"&gt;
-    &lt;title&gt;文章标题 - 博客名&lt;/title&gt;
-    &lt;link rel="stylesheet" href="../style.css"&gt;
-&lt;/head&gt;
-&lt;body&gt;
-    &lt;!-- 导航栏 --&gt;
-    &lt;header&gt;...&lt;/header&gt;
-    
-    &lt;!-- 文章内容 --&gt;
-    &lt;main class="main-content article-content"&gt;
-        &lt;article&gt;
-            &lt;h1&gt;文章标题&lt;/h1&gt;
-            &lt;div class="article-body"&gt;
-                &lt;p&gt;正文内容...&lt;/p&gt;
-            &lt;/div&gt;
-        &lt;/article&gt;
-    &lt;/main&gt;
-    
-    &lt;!-- 页脚 --&gt;
-    &lt;footer&gt;...&lt;/footer&gt;
-    
-    &lt;script src="../script.js"&gt;&lt;/script&gt;
-&lt;/body&gt;
-&lt;/html&gt;</code></pre>
-        
-        <h3>2. 在首页添加链接</h3>
-        <p>在 <code>index.html</code> 的文章列表中添加：</p>
-        
-        <pre><code>&lt;article class="post-item"&gt;
-    &lt;div class="post-meta"&gt;
-        &lt;time&gt;2026-03-15&lt;/time&gt;
-        &lt;span class="post-category"&gt;分类名&lt;/span&gt;
-    &lt;/div&gt;
-    &lt;h3 class="post-title"&gt;
-        &lt;a href="posts/new-article.html"&gt;文章标题&lt;/a&gt;
-    &lt;/h3&gt;
-    &lt;p class="post-excerpt"&gt;文章摘要...&lt;/p&gt;
-&lt;/article&gt;</code></pre>
-        
-        <h2>六、个性化修改</h2>
-        
-        <h3>修改个人信息</h3>
-        <p>在 <code>index.html</code> 中修改：</p>
-        
-        <pre><code>&lt;!-- 修改名字 --&gt;
-&lt;h1 class="profile-name"&gt;你的名字&lt;/h1&gt;
+├── avatar.png         # 头像图片
+└── posts/             # 文章文件夹</code></pre>
 
-&lt;!-- 修改简介 --&gt;
-&lt;p class="profile-bio"&gt;你的简介&lt;/p&gt;
+                <h2>三、启用 GitHub Pages</h2>
+                <ol>
+                    <li>进入仓库 → Settings → Pages</li>
+                    <li>在 "Build and deployment" 部分，找到 "Source"</li>
+                    <li>选择 "Deploy from a branch"</li>
+                    <li>Branch 选择 "main"，目录选择 "/(root)"</li>
+                    <li>点击 "Save"</li>
+                </ol>
 
-&lt;!-- 修改描述 --&gt;
-&lt;p class="profile-desc"&gt;在这里记录学习笔记。&lt;/p&gt;</code></pre>
-        
-        <h3>修改社交链接</h3>
-        <p>在 <code>index.html</code> 的页脚部分：</p>
-        
-        <pre><code>&lt;div class="footer-links"&gt;
-    &lt;a href="https://github.com/你的用户名"&gt;GitHub&lt;/a&gt;
-    &lt;a href="mailto:your@email.com"&gt;邮箱&lt;/a&gt;
-    &lt;a href="https://bilibili.com/你的ID"&gt;Bilibili&lt;/a&gt;
-&lt;/div&gt;</code></pre>
-        
-        <h3>修改头像</h3>
-        <p>将你的头像图片命名为 <code>avatar.png</code>，或修改 <code>index.html</code> 中的图片路径：</p>
-        
-        <pre><code>&lt;img src="你的头像文件.jpg" alt="头像" class="profile-avatar"&gt;</code></pre>
-        
-        <h2>七、常见问题</h2>
-        
-        <h3>Q1: 访问网站显示的是 README 而不是 index.html？</h3>
-        <p>删除仓库中的 <code>README.md</code> 文件即可。</p>
-        
-        <h3>Q2: 网站显示旧内容？</h3>
-        <p>按 <code>Ctrl + Shift + R</code>（Windows）或 <code>Cmd + Shift + R</code>（Mac）强制刷新清除缓存。</p>
-        
-        <h3>Q3: 图片显示不了？</h3>
-        <p>检查图片路径是否正确，确保图片已上传到仓库根目录。</p>
-        
-        <h3>Q4: 如何使用 Markdown 写文章？</h3>
-        <p>可以使用在线工具（如 <a href="https://markdowntohtml.com" target="_blank">Markdown to HTML</a>）将 Markdown 转换为 HTML，然后保存到 <code>posts/</code> 文件夹。</p>
-        
-        <h2>八、主题切换</h3>
-        
-        <p>博客支持深色/浅色模式切换。点击导航栏中的太阳/月亮图标即可切换主题。主题设置会保存在浏览器本地，下次访问时自动记忆。</p>
-        
-        <hr style="margin: 2rem 0; border: none; border-top: 1px solid #eee;">
-        
-        <p style="text-align: center; color: #999;">
-            博客地址：<a href="https://youngsimpleboy.github.io">https://youngsimpleboy.github.io</a><br>
-            创建时间：2026年3月
-        </p>
-    </div>
+                <h2>四、写新文章</h2>
+                <p>在 <code>posts/</code> 文件夹中创建新的 HTML 文件，引用上级目录的样式表：</p>
+                <pre><code>&lt;link rel="stylesheet" href="../style.css"&gt;</code></pre>
+
+                <h2>五、主题切换</h2>
+                <p>博客支持深色/浅色模式切换。点击导航栏中的太阳/月亮图标即可切换主题。主题设置会保存在浏览器本地，下次访问时自动记忆。</p>
+            </div>
+
+            <footer class="article-footer">
+                <a href="../index.html" class="back-link">← 返回首页</a>
+            </footer>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-links">
+                <a href="https://github.com/YoungSimpleBoy">GitHub</a>
+                <a href="mailto:2404716575@qq.com">E-mail</a>
+                <a href="https://space.bilibili.com/52652807">bilibili</a>
+            </div>
+            <p class="copyright">© 2026 YoungSimpleBoy. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="../script.js"></script>
 </body>
 </html>
