@@ -1,478 +1,184 @@
 <!DOCTYPE html>
-
 <html lang="zh-CN">
 <head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<meta content="个人技术博客 / 笔记存档" name="description"/>
-<title>YoungSimpleBoy 的博客</title>
-<link href="style.css" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com" rel="preconnect"/>
-<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
-<link href="https://cdn.jsdelivr.net/npm/katex/dist/katex.min.css" rel="stylesheet"/><link href="https://cdn.jsdelivr.net/npm/katex-copytex@latest/dist/katex-copytex.min.css" rel="stylesheet" type="text/css"/><script async="" src="https://cdn.jsdelivr.net/npm/katex-copytex@latest/dist/katex-copytex.min.js"></script>
-<script>
-(function() {
-var savedTheme = localStorage.getItem('theme');
-if (savedTheme === 'light') {
-document.documentElement.classList.add('light');
-} else {
-document.documentElement.classList.remove('light');
-}
-})();
-</script>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <meta content="个人技术博客 / 笔记存档" name="description"/>
+    <title>YoungSimpleBoy 的博客</title>
+    <link href="/style.css" rel="stylesheet"/>
+    <script src="https://unpkg.com/@barba/core"></script>
+    <script src="https://unpkg.com/tone@14.7.77/build/Tone.js"></script>
+    <script src="https://unpkg.com/@tonejs/midi"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <link href="https://fonts.googleapis.com" rel="preconnect"/>
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+    <link href="https://cdn.jsdelivr.net/npm/katex/dist/katex.min.css" rel="stylesheet"/>
+    <link href="https://cdn.jsdelivr.net/npm/katex-copytex@latest/dist/katex-copytex.min.css" rel="stylesheet" type="text/css"/>
+    <script async="" src="https://cdn.jsdelivr.net/npm/katex-copytex@latest/dist/katex-copytex.min.js"></script>
+    <script>
+    (function() {
+        var savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'light') {
+            document.documentElement.classList.add('light');
+        } else {
+            document.documentElement.classList.remove('light');
+        }
+    })();
+    </script>
 </head>
-<body>
-<!-- 导航栏 -->
-<header class="header">
-<nav class="nav-container">
-<a class="logo" href="index.html">~/blog</a>
-<button aria-label="菜单" class="mobile-menu-btn" id="mobileMenuBtn">
-<svg class="menu-icon" fill="none" stroke="currentColor" viewbox="0 0 24 24">
-<path d="M4 6h16M4 12h16M4 18h16" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
-</svg>
-</button>
-<ul class="nav-links" id="navLinks">
-<li><a class="nav-link active" href="index.html">文章</a></li>
-<li><a class="nav-link" href="#posts">搜索</a></li>
-<li><a class="nav-link" href="#about">关于</a></li>
-<li>
-<button aria-label="切换主题" class="theme-toggle" id="themeToggle">
-<svg class="sun-icon" fill="none" height="18" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24" width="18">
-<circle cx="12" cy="12" r="5"></circle>
-<line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line>
-<line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line>
-<line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line>
-<line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line>
-</svg>
-<svg class="moon-icon" fill="none" height="18" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24" width="18">
-<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-</svg>
-</button>
-</li>
-</ul>
-</nav>
-</header>
-<!-- 主内容区 -->
-<main class="main-content">
-<!-- 个人资料区域 -->
-<section class="profile" id="about">
-<img alt="头像" class="profile-avatar" onerror="this.style.display='none'" src="avatar.png"/>
-<div class="profile-info">
-<h1 class="profile-name">YoungSimpleBoy</h1>
-<p class="profile-bio">化学工程专业在读 / 编程爱好者</p>
-<p class="profile-desc">在这里记录学习笔记和技术心得。</p>
-</div>
-</section>
-<!-- 简易日期卡片 -->
-<div class="date-card">
-<div class="date-info">
-<span class="date-day" id="current-date"></span>
-<span class="lunar-date" id="lunarDate"></span>
-<span class="date-week" id="current-week"></span>
-<span class="date-time" id="current-time"></span>
-</div>
-<div class="yi-ji" id="yi-ji"></div>
-</div>
-<!-- 文章列表 -->
-<section class="posts" id="posts">
-<h2 class="section-title">全部文章</h2>
-<div class="search-box">
-<input class="search-input" id="searchInput" placeholder="搜索文章标题或内容..." type="text"/>
-<button class="search-clear" id="searchClear" type="button">&times;</button>
-</div>
-<article class="post-item"><div class="post-meta"><time datetime="2026-03-15">2026-03-15</time><span class="post-category">数学</span></div><h3 class="post-title"><a href="posts/Hamiltonian-Jaccobi-Bellman方程.html">Hamiltonian-Jacobi-Bellman方程</a></h3><p class="post-excerpt">本文内容来自《最优控制：数学理论与智能方法（上册）》章节5.3。2023年9月30日学习动态最优化理论时记录，顺便学习LaTeX和公式排版。对于该书之前章节的内容，比如不同形式下最优控制的极小值原理，可以去阅读原书。</p><div class="post-tags"><a class="tag" href="#tags">笔记</a><a class="tag" href="#tags">最优化</a><a class="tag" href="#tags">PDE</a></div></article>
+<body data-barba="wrapper">
+    <header class="header">
+        <nav class="nav-container">
+            <a href="/" class="logo">~/blog</a>
+            <button aria-label="菜单" class="mobile-menu-btn" id="mobileMenuBtn">
+                <svg class="menu-icon" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+                    <path d="M4 6h16M4 12h16M4 18h16" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                </svg>
+            </button>
+            <ul class="nav-links" id="navLinks">
+                <li><a href="/#posts" class="nav-link">文章</a></li>
+                <li><a class="nav-link" href="/#posts">搜索</a></li>
+                <li><a class="nav-link" href="/about.html">关于</a></li>
+                <li>
+                    <button aria-label="切换主题" class="theme-toggle" id="themeToggle">
+                        <svg class="sun-icon" fill="none" height="18" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24" width="18">
+                            <circle cx="12" cy="12" r="5"></circle>
+                            <line x1="12" x2="12" y1="1" y2="3"></line><line x1="12" x2="12" y1="21" y2="23"></line>
+                            <line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line><line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line>
+                            <line x1="1" x2="3" y1="12" y2="12"></line><line x1="21" x2="23" y1="12" y2="12"></line>
+                            <line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line><line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line>
+                        </svg>
+                        <svg class="moon-icon" fill="none" height="18" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24" width="18">
+                            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                        </svg>
+                    </button>
+                </li>
+                <li>
+                    <button class="music-btn bgm-toggle" id="bgmToggle" title="播放/暂停 BGM">
+                        <svg class="bgm-play-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                        </svg>
+                        <svg class="bgm-pause-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none;" width="18" height="18">
+                            <rect x="6" y="4" width="4" height="16"></rect>
+                            <rect x="14" y="4" width="4" height="16"></rect>
+                        </svg>
+                        <svg class="bgm-loading-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none;" width="18" height="18">
+                            <circle cx="12" cy="12" r="10" stroke-dasharray="31.4 31.4" stroke-dashoffset="0">
+                                <animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="1s" repeatCount="indefinite"/>
+                            </circle>
+                        </svg>
+                    </button>
+                </li>
+            </ul>
+        </nav>
+    </header>
 
-<article class="post-item"><div class="post-meta"><time datetime="2026-03-14">2026-03-14</time><span class="post-category">综合</span></div><h3 class="post-title"><a href="posts/OpenMM分子动力学模拟的积分器介绍.html">OpenMM分子动力学模拟的积分器</a></h3><p class="post-excerpt">Openmm是一个分子模拟工具包。它既可以作为独立应用程序运行模拟，也可以作为代码中调用的库（python）。本文介绍OpenMM提供的丰富多样的积分器。</p><div class="post-tags"><a class="tag" href="#tags">分子动力学</a><a class="tag" href="#tags">python</a></div></article>
-<article class="post-item"><div class="post-meta"><time datetime="2026-03-13">2026-03-13</time><span class="post-category">数学</span></div><h3 class="post-title"><a href="posts/病态方程组与三角分解.html">病态方程组与三角分解</a></h3><p class="post-excerpt">本文内容来自 2026 年 3 月 13 日的工程与科学计算课程笔记。</p><div class="post-tags"><a class="tag" href="#tags">笔记</a><a class="tag" href="#tags">科学计算</a></div></article>
-<article class="post-item"><div class="post-meta"><time datetime="2026-03-12">2026-03-12</time><span class="post-category">数学</span></div><h3 class="post-title"><a href="posts/三维空间旋转变换与平面镜像变换.html">三维空间旋转变换与平面镜像变换 理论证明</a></h3><p class="post-excerpt">设三维欧氏空间R3中，所有向量、点均为列向量。</p><div class="post-tags"><a class="tag" href="#tags">线性代数</a></div></article>
-<article class="post-item"><div class="post-meta"><time datetime="2026-03-12">2026-03-12</time><span class="post-category">技术教程</span></div><h3 class="post-title"><a href="posts/hello-world.html">我的第一篇博客文章</a></h3><p class="post-excerpt">这是博客的第一篇文章，记录搭建这个博客的过程和一些学习心得...</p><div class="post-tags"><a class="tag" href="#tags">前端</a><a class="tag" href="#tags">HTML</a></div></article>
 
-<!-- 分页 -->
-<div class="pagination" id="pagination">
-    <a href="#" class="page-btn" id="prevBtn">上一页</a>
-    <div class="page-numbers" id="pageNumbers"></div>
-    <a href="#" class="page-btn" id="nextBtn">下一页</a>
-</div>
-</section>
-</main>
-<!-- 页脚（在 main 外部） -->
-<footer class="footer">
-<div class="footer-content">
-<div class="footer-links">
-<a href="https://github.com/YoungSimpleBoy" rel="noopener" target="_blank">GitHub</a>
-<a href="mailto:2404716575@qq.com">E-mail</a>
-<a href="https://space.bilibili.com/52652807">bilibili</a>
-</div>
-<p class="copyright">© 2026 YoungSimpleBoy. All rights reserved.</p>
-</div>
-</footer>
-<script src="script.js"></script>
-<div class="gif-corner" id="uma-gif-container">
-<img alt="uma" id="uma-gif" src="uma_gif/uma_01.gif" title="祝你早安、午安、晚安🤗"/>
-</div>
-<script>
-(function() {
-const gifList = [
-'uma_01.gif',
-'uma_02.gif',
-'uma_03.gif',
-'uma_04.gif',
-'uma_05.gif',
-'uma_06.gif',
-'uma_07.gif',
-'uma_08.gif',
-'uma_09.gif',
-'uma_10.gif',
-'uma_11.gif',
-'uma_12.gif',
-'uma_13.gif',
-'uma_14.gif',
-'uma_15.gif',
-'uma_16.gif',
-'uma_17.gif',
-'uma_18.gif',
-'uma_19.gif',
-'uma_20.gif',
-'uma_21.gif',
-'uma_22.gif',
-'uma_23.gif',
-'uma_24.gif',
-'uma_25.gif',
-'uma_26.gif',
-'uma_27.gif',
-'uma_28.gif',
-'uma_29.gif',
-'uma_30.gif',
-'uma_31.gif',
-'uma_32.gif',
-'uma_33.gif',
-'uma_34.gif',
-'uma_35.gif',
-'uma_36.gif',
-'uma_37.gif',
-'uma_38.gif',
-'uma_39.gif',
-'uma_40.gif',
-];
-const img = document.getElementById('uma-gif');
-if (!img) return;
-let currentIndex = 0;
-img.addEventListener('click', function() {
-currentIndex = (currentIndex + 1) % gifList.length;
-img.src = 'uma_gif/' + gifList[currentIndex];
-});
-})();
-</script>
-<script>
-(function() {
-function updateDateTime() {
-const now = new Date();
-const year = now.getFullYear();
-const month = String(now.getMonth() + 1).padStart(2, '0');
-const day = String(now.getDate()).padStart(2, '0');
-document.getElementById('current-date').textContent = `${year}-${month}-${day}`;
-try {
-let lunar = now.toLocaleString('zh-CN-u-ca-chinese', { 
-year: 'numeric', 
-month: 'long', 
-day: 'numeric' 
-});
-lunar = lunar.replace(/^\d+(?=[甲乙丙丁戊己庚辛壬癸])/, '').trim();
-function numToChinese(num) {
-const digits = [
-'', '一', '二', '三', '四', '五', '六', '七', '八', '九', '十',
-'十一', '十二', '十三', '十四', '十五', '十六', '十七', '十八', '十九', '二十',
-'廿一', '廿二', '廿三', '廿四', '廿五', '廿六', '廿七', '廿八', '廿九', '三十',
-'卅一'
-];
-return digits[num] || num;
-}
-lunar = lunar.replace(/(\d+)$/, (match, p1) => numToChinese(parseInt(p1, 10)));
-document.getElementById('lunarDate').textContent = lunar;
-} catch (e) {
-document.getElementById('lunarDate').textContent = '农历加载失败';
-}
-const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
-const weekday = weekdays[now.getDay()];
-document.getElementById('current-week').textContent = weekday;
-const hours = String(now.getHours()).padStart(2, '0');
-const minutes = String(now.getMinutes()).padStart(2, '0');
-const seconds = String(now.getSeconds()).padStart(2, '0');
-document.getElementById('current-time').textContent = `${hours}:${minutes}:${seconds}`;
-}
-updateDateTime();
-setInterval(updateDateTime, 1000);
-const yiList = ['读文献', '看书', '写文章', '跑文章', '做实验', '运动', '哈↑基→米↓~', '曼↑波↓~'];
-const jiList = ['熬夜', '摆烂', '刷视频', '打游戏', '摸鱼', '鹿', '叮咚鸡', '大狗叫'];
-const today = new Date();
-const seed = today.getFullYear() * 10000 + (today.getMonth()+1) * 100 + today.getDate();
-function seededRandom(s) {
-const x = Math.sin(s) * 10000;
-return x - Math.floor(x);
-}
-const r = seededRandom(seed);
-const yiIndex = Math.floor(r * yiList.length);
-const jiIndex = Math.floor(seededRandom(seed+1) * jiList.length);
-const yi = yiList[yiIndex];
-const ji = jiList[jiIndex];
-document.getElementById('yi-ji').innerHTML = `
-<span class="yi">✅ 宜：${yi}</span>
-<span class="ji">❌ 忌：${ji}</span>
-`;
-})();
-</script>
-<script>
-// 分页功能
-(function() {
-const POSTS_PER_PAGE = 4;
-let currentPage = 1;
-let totalPosts = 0;
-let filteredPosts = [];
+    <main class="main-content" data-barba="container" data-barba-namespace="home">
+        <section class="profile" id="about">
+            <img alt="头像" class="profile-avatar" onerror="this.style.display='none'" src="/asset/avatar.png"/>
+            <div class="profile-info">
+                <h1 class="profile-name">YoungSimpleBoy</h1>
+                <p class="profile-bio">化学工程专业在读 / 编程爱好者</p>
+                <p class="profile-desc">在这里记录学习笔记和技术心得。</p>
+            </div>
+        </section>
 
-function showPage(page) {
-    const posts = document.querySelectorAll('.post-item');
-    // 获取所有可见的文章（搜索后）
-    filteredPosts = [];
-    posts.forEach(function(post) {
-        if (post.style.display !== 'none') {
-            filteredPosts.push(post);
-        }
-    });
-    
-    totalPosts = filteredPosts.length;
-    const totalPages = Math.ceil(totalPosts / POSTS_PER_PAGE);
-    
-    // 边界检查
-    if (page < 1) page = 1;
-    if (page > totalPages && totalPages > 0) page = totalPages;
-    currentPage = page;
-    
-    // 显示/隐藏文章
-    filteredPosts.forEach(function(post, index) {
-        const start = (currentPage - 1) * POSTS_PER_PAGE;
-        const end = start + POSTS_PER_PAGE;
-        if (index >= start && index < end) {
-            post.style.display = '';
-        } else {
-            post.style.display = 'none';
-        }
-    });
-    
-    // 更新分页按钮
-    updatePagination(totalPages);
-}
 
-function updatePagination(totalPages) {
-    const pageNumbers = document.getElementById('pageNumbers');
-    const prevBtn = document.getElementById('prevBtn');
-    const nextBtn = document.getElementById('nextBtn');
-    
-    if (!pageNumbers) return;
-    
-    // 上一页/下一页按钮状态
-    if (prevBtn) {
-        prevBtn.classList.toggle('disabled', currentPage <= 1);
-        prevBtn.onclick = function(e) {
-            e.preventDefault();
-            if (currentPage > 1) showPage(currentPage - 1);
-        };
-    }
-    if (nextBtn) {
-        nextBtn.classList.toggle('disabled', currentPage >= totalPages);
-        nextBtn.onclick = function(e) {
-            e.preventDefault();
-            if (currentPage < totalPages) showPage(currentPage + 1);
-        };
-    }
-    
-    // 生成页码
-    let html = '';
-    const maxVisible = 5;
-    let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
-    let endPage = Math.min(totalPages, startPage + maxVisible - 1);
-    
-    if (endPage - startPage + 1 < maxVisible) {
-        startPage = Math.max(1, endPage - maxVisible + 1);
-    }
-    
-    for (let i = startPage; i <= endPage; i++) {
-        if (i === currentPage) {
-            html += '<span class="page-number active">' + i + '</span>';
-        } else {
-            html += '<a href="#" class="page-number" data-page="' + i + '">' + i + '</a>';
-        }
-    }
-    pageNumbers.innerHTML = html;
-    
-    // 页码点击事件
-    pageNumbers.querySelectorAll('.page-number').forEach(function(btn) {
-        btn.onclick = function(e) {
-            e.preventDefault();
-            showPage(parseInt(this.dataset.page));
-        };
-    });
-}
+        <div class="date-card">
+            <div class="date-info">
+                <span class="date-day" id="current-date"></span>
+                <span class="lunar-date" id="lunarDate"></span>
+                <span class="date-week" id="current-week"></span>
+                <span class="date-time" id="current-time"></span>
+            </div>
+            <div class="yi-ji" id="yi-ji"></div>
+        </div>
 
-// 初始化
-document.addEventListener('DOMContentLoaded', function() {
-    // 先设置所有文章为搜索可见
-    const posts = document.querySelectorAll('.post-item');
-    posts.forEach(function(post) {
-        post.dataset.searched = 'true';
-    });
-    showPage(1);
-});
-})();
-</script>
-<script>
-// 搜索功能（使用 data 属性，避免与分页冲突）
-(function() {
-const searchInput = document.getElementById('searchInput');
-const searchClear = document.getElementById('searchClear');
-if (!searchInput) return;
 
-function performSearch() {
-    const query = searchInput.value.toLowerCase().trim();
-    const posts = document.querySelectorAll('.post-item');
+        <section class="posts" id="posts">
+            <h2 class="section-title">全部文章</h2>
+            <div class="search-box">
+                <input class="search-input" id="searchInput" placeholder="搜索文章标题或内容..." type="text"/>
+                <button class="search-clear" id="searchClear" type="button">×</button>
+            </div>
 
-    posts.forEach(function(post) {
-        const title = post.querySelector('.post-title')?.textContent.toLowerCase() || '';
-        const excerpt = post.querySelector('.post-excerpt')?.textContent.toLowerCase() || '';
-        const tags = post.querySelector('.post-tags')?.textContent.toLowerCase() || '';
+            <article class="post-item">
+                <div class="post-meta"><time datetime="2026-03-21">2026-03-21</time><span class="post-category">数学</span></div>
+                <h3 class="post-title"><a href="/posts/p2026032101.html">科学计算笔记 part2</a></h3>
+                <p class="post-excerpt">本文内容来自 2026 年 3 月 18 日和 20 日的工程与科学计算课程笔记，由豆包识图后重新整理。</p>
+                <div class="post-tags"><a class="tag" href="#tags">笔记</a><a class="tag" href="#tags">科学计算</a></div>
+            </article>
 
-        if (query === '' || title.includes(query) || excerpt.includes(query) || tags.includes(query)) {
-            post.dataset.searched = 'true';
-        } else {
-            post.dataset.searched = 'false';
-        }
-    });
-    
-    // 通知分页功能重新计算
-    if (window.paginationInit) {
-        window.paginationInit();
-    }
-}
+            <article class="post-item">
+                <div class="post-meta"><time datetime="2026-03-15">2026-03-15</time><span class="post-category">数学</span></div>
+                <h3 class="post-title"><a href="/posts/p2026031501.html">Hamiltonian-Jacobi-Bellman方程</a></h3>
+                <p class="post-excerpt">本文内容来自《最优控制：数学理论与智能方法（上册）》章节5.3。2023年9月30日学习动态最优化理论时记录，顺便学习LaTeX和公式排版。对于该书之前章节的内容，比如不同形式下最优控制的极小值原理，可以去阅读原书。</p>
+                <div class="post-tags"><a class="tag" href="#tags">笔记</a><a class="tag" href="#tags">最优化</a><a class="tag" href="#tags">PDE</a></div>
+            </article>
 
-// 清空搜索
-if (searchClear) {
-    searchClear.addEventListener('click', function() {
-        searchInput.value = '';
-        performSearch();
-    });
-}
+            <article class="post-item">
+                <div class="post-meta"><time datetime="2026-03-14">2026-03-14</time><span class="post-category">综合</span></div>
+                <h3 class="post-title"><a href="/posts/p2026031401.html">OpenMM分子动力学模拟的积分器</a></h3>
+                <p class="post-excerpt">Openmm是一个分子模拟工具包。它既可以作为独立应用程序运行模拟，也可以作为代码中调用的库（python）。本文介绍OpenMM提供的丰富多样的积分器。</p>
+                <div class="post-tags"><a class="tag" href="#tags">分子动力学</a><a class="tag" href="#tags">python</a></div>
+            </article>
 
-searchInput.addEventListener('input', performSearch);
-})();
-</script>
-<script>
-// 分页功能（使用 data 属性控制显示）
-(function() {
-const POSTS_PER_PAGE = 4;
-let currentPage = 1;
+            <article class="post-item">
+                <div class="post-meta"><time datetime="2026-03-13">2026-03-13</time><span class="post-category">数学</span></div>
+                <h3 class="post-title"><a href="/posts/p2026031301.html">科学计算笔记 part1</a></h3>
+                <p class="post-excerpt">本文内容来自 2026 年 3 月 13 日的工程与科学计算课程笔记。</p>
+                <div class="post-tags"><a class="tag" href="#tags">笔记</a><a class="tag" href="#tags">科学计算</a></div>
+            </article>
 
-function showPage(page) {
-    const posts = document.querySelectorAll('.post-item');
-    // 获取所有被搜索匹配的文章
-    const visiblePosts = [];
-    posts.forEach(function(post) {
-        if (post.dataset.searched !== 'false') {
-            visiblePosts.push(post);
-        }
-    });
-    
-    const totalPosts = visiblePosts.length;
-    const totalPages = Math.max(1, Math.ceil(totalPosts / POSTS_PER_PAGE));
-    
-    // 边界检查
-    if (page < 1) page = 1;
-    if (page > totalPages) page = totalPages;
-    currentPage = page;
-    
-    // 先隐藏所有文章
-    posts.forEach(function(post) {
-        post.style.display = 'none';
-    });
-    
-    // 显示当前页的文章
-    const start = (currentPage - 1) * POSTS_PER_PAGE;
-    const end = Math.min(start + POSTS_PER_PAGE, totalPosts);
-    for (let i = start; i < end; i++) {
-        if (visiblePosts[i]) {
-            visiblePosts[i].style.display = '';
-        }
-    }
-    
-    // 更新分页按钮
-    updatePagination(totalPages);
-}
+            <article class="post-item">
+                <div class="post-meta"><time datetime="2026-03-12">2026-03-12</time><span class="post-category">数学</span></div>
+                <h3 class="post-title"><a href="/posts/p2026031201.html">三维空间旋转变换与平面镜像变换 理论证明</a></h3>
+                <p class="post-excerpt">设三维欧氏空间R3中，所有向量、点均为列向量。</p>
+                <div class="post-tags"><a class="tag" href="#tags">线性代数</a></div>
+            </article>
 
-function updatePagination(totalPages) {
-    const pageNumbers = document.getElementById('pageNumbers');
-    const prevBtn = document.getElementById('prevBtn');
-    const nextBtn = document.getElementById('nextBtn');
-    
-    if (!pageNumbers) return;
-    
-    // 上一页/下一页按钮状态
-    if (prevBtn) {
-        prevBtn.classList.toggle('disabled', currentPage <= 1);
-        prevBtn.onclick = function(e) {
-            e.preventDefault();
-            if (currentPage > 1) showPage(currentPage - 1);
-        };
-    }
-    if (nextBtn) {
-        nextBtn.classList.toggle('disabled', currentPage >= totalPages);
-        nextBtn.onclick = function(e) {
-            e.preventDefault();
-            if (currentPage < totalPages) showPage(currentPage + 1);
-        };
-    }
-    
-    // 生成页码
-    let html = '';
-    const maxVisible = 5;
-    let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
-    let endPage = Math.min(totalPages, startPage + maxVisible - 1);
-    
-    if (endPage - startPage + 1 < maxVisible) {
-        startPage = Math.max(1, endPage - maxVisible + 1);
-    }
-    
-    for (let i = startPage; i <= endPage; i++) {
-        if (i === currentPage) {
-            html += '<span class="page-number active">' + i + '</span>';
-        } else {
-            html += '<a href="#" class="page-number" data-page="' + i + '">' + i + '</a>';
-        }
-    }
-    pageNumbers.innerHTML = html;
-    
-    // 页码点击事件
-    pageNumbers.querySelectorAll('.page-number').forEach(function(btn) {
-        btn.onclick = function(e) {
-            e.preventDefault();
-            showPage(parseInt(this.dataset.page));
-        };
-    });
-}
+            <article class="post-item">
+                <div class="post-meta"><time datetime="2026-03-12">2026-03-12</time><span class="post-category">技术教程</span></div>
+                <h3 class="post-title"><a href="/posts/hello-world.html">我的第一篇博客文章</a></h3>
+                <p class="post-excerpt">这是博客的第一篇文章，记录搭建这个博客的过程和一些学习心得...</p>
+                <div class="post-tags"><a class="tag" href="#tags">前端</a><a class="tag" href="#tags">HTML</a></div>
+            </article>
 
-// 初始化函数，供搜索调用
-window.paginationInit = function() {
-    showPage(1);
-};
+            <div class="pagination" id="pagination">
+                <a class="page-btn" href="#" id="prevBtn">上一页</a>
+                <div class="page-numbers" id="pageNumbers"></div>
+                <a class="page-btn" href="#" id="nextBtn">下一页</a>
+            </div>
+        </section>
 
-// 初始化
-document.addEventListener('DOMContentLoaded', function() {
-    // 先设置所有文章为搜索可见
-    const posts = document.querySelectorAll('.post-item');
-    posts.forEach(function(post) {
-        post.dataset.searched = 'true';
-    });
-    showPage(1);
-});
-})();
-</script>
+        <div class="gif-corner" id="uma-gif-container">
+            <img alt="uma" id="uma-gif" title="祝你早安、午安、晚安🤗">
+        </div>
+
+    </main>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-links">
+                <a href="https://github.com/YoungSimpleBoy" target="_blank" rel="noopener">
+                    <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+                    GitHub
+                </a>
+                <a href="mailto:2404716575@qq.com">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                    E-mail
+                </a>
+                <a href="https://space.bilibili.com/52652807" target="_blank" rel="noopener">
+                    <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M17.813 4.653h.854c1.51.054 2.769.578 3.773 1.574 1.004.995 1.524 2.249 1.56 3.76v7.36c-.036 1.51-.556 2.769-1.56 3.773s-2.262 1.524-3.773 1.56H5.333c-1.51-.036-2.769-.556-3.773-1.56S.036 18.858 0 17.347v-7.36c.036-1.511.556-2.765 1.56-3.76 1.004-.996 2.262-1.52 3.773-1.574h.774l-1.174-1.12a1.234 1.234 0 0 1-.373-.906c0-.356.124-.659.373-.907l.027-.027c.267-.249.573-.373.92-.373.347 0 .653.124.92.373L9.653 4.44c.071.071.134.142.187.213h4.267a.836.836 0 0 1 .16-.213l2.853-2.747c.267-.249.573-.373.92-.373.347 0 .662.151.929.4.267.249.391.551.391.907 0 .355-.124.657-.373.906zM5.333 7.24c-.746.018-1.373.276-1.88.773-.506.498-.769 1.13-.786 1.894v7.52c.017.764.28 1.395.786 1.893.507.498 1.134.756 1.88.773h13.334c.746-.017 1.373-.275 1.88-.773.506-.498.769-1.129.786-1.893v-7.52c-.017-.765-.28-1.396-.786-1.894-.507-.497-1.134-.755-1.88-.773zM8 11.107c.373 0 .684.124.933.373.25.249.383.569.4.96v1.173c-.017.391-.15.711-.4.96-.249.25-.56.374-.933.374s-.684-.125-.933-.374c-.25-.249-.383-.569-.4-.96V12.44c0-.373.129-.689.386-.947.258-.257.574-.386.947-.386zm8 0c.373 0 .684.124.933.373.25.249.383.569.4.96v1.173c-.017.391-.15.711-.4.96-.249.25-.56.374-.933.374s-.684-.125-.933-.374c-.25-.249-.383-.569-.4-.96V12.44c.017-.391.15-.711.4-.96.249-.249.56-.373.933-.373z"/></svg>
+                    bilibili
+                </a>
+            </div>
+            <p class="copyright">© 2026 YoungSimpleBoy. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="/script.js"></script>
 </body>
 </html>

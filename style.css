@@ -83,7 +83,7 @@ a:hover {
 
 /* 容器 */
 .container {
-    max-width: 800px;
+    max-width: 900px;
     margin: 0 auto;
     padding: 0 1.5rem;
 }
@@ -105,7 +105,7 @@ a:hover {
 }
 
 .nav-container {
-    max-width: 800px;
+    max-width: 900px;
     margin: 0 auto;
     padding: 0.875rem 1.5rem;
     display: flex;
@@ -193,6 +193,42 @@ a:hover {
 
 .light .sun-icon { display: none; }
 .light .moon-icon { display: block; }
+
+/* 音乐按钮 */
+.theme-toggle, .music-btn {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 6px;
+    cursor: pointer;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    width: 36px;  /* 统一宽高 */
+    height: 36px;
+}
+
+.theme-toggle:hover, .music-btn:hover {
+    background-color: var(--bg-hover);
+    color: var(--accent);
+    border-color: var(--accent);
+}
+
+.theme-toggle svg, .music-btn svg {
+    width: 18px;
+    height: 18px;
+}
+
+/* 当 JS 给按钮加上 is-playing 类名时：显示暂停，隐藏播放 */
+.music-btn.is-playing .bgm-play-icon { display: none !important; }
+.music-btn.is-playing .bgm-pause-icon { display: block !important; }
+
+/* 当 JS 给按钮加上 is-loading 类名时：显示转圈，隐藏其他 */
+.music-btn.is-loading .bgm-play-icon,
+.music-btn.is-loading .bgm-pause-icon { display: none !important; }
+.music-btn.is-loading .bgm-loading-icon { display: block !important; }
 
 /* 移动端菜单按钮 */
 .mobile-menu-btn {
@@ -650,6 +686,16 @@ a:hover {
     border: 1px solid var(--border-color);
 }
 
+.article-body img {
+    max-width: 40%;
+    height: auto;
+    display: block;
+    margin: 1rem auto;  /* 可选，给图片上下边距并居中 */
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+    opacity: 0.9;
+}
+
 /* KaTeX 块级公式居中 */
 .katex-display {
     text-align: center;
@@ -1024,4 +1070,367 @@ hr {
 .light .search-input:focus {
     border-color: var(--light-link-color);
     box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.15);
+}
+
+/* Lightbox 遮罩层 */
+.lightbox-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(5px);
+    z-index: 9999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.lightbox-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* 放大的图片容器 */
+.lightbox-image {
+    max-width: 90%;
+    max-height: 90%;
+    object-fit: contain;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    transition: transform 0.3s ease;
+}
+
+/* 关闭按钮 */
+.lightbox-close {
+    position: absolute;
+    top: 20px;
+    right: 30px;
+    font-size: 40px;
+    color: #fff;
+    cursor: pointer;
+    user-select: none;
+    z-index: 10000;
+    line-height: 1;
+    transition: color 0.2s ease;
+}
+
+.lightbox-close:hover {
+    color: var(--accent);
+}
+
+/* Lightbox 导航按钮 */
+.lightbox-prev,
+.lightbox-next {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 48px;          /* 调大字体，更易点击 */
+    font-weight: bold;
+    color: rgba(255, 255, 255, 0.7);
+    cursor: pointer;
+    user-select: none;
+    transition: color 0.2s ease;
+    text-decoration: none;
+    z-index: 10001;
+    background: none;         /* 移除背景 */
+    width: auto;
+    height: auto;
+    line-height: 1;
+    border-radius: 0;
+}
+
+.lightbox-prev:hover,
+.lightbox-next:hover {
+    color: var(--accent);     /* 使用主题强调色，可自定义 */
+}
+
+.lightbox-prev {
+    left: 20px;
+}
+
+.lightbox-next {
+    right: 20px;
+}
+
+/* 图片计数器 */
+.lightbox-counter {
+    position: absolute;
+    bottom: 20px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    color: #fff;
+    background-color: rgba(0, 0, 0, 0.5);
+    padding: 4px 12px;
+    border-radius: 20px;
+    width: fit-content;
+    margin: 0 auto;
+    font-size: 16px;
+    font-family: 'JetBrains Mono', monospace;
+    pointer-events: none;
+    z-index: 10001;
+}
+
+/* BGM 按钮状态控制 */
+.bgm-toggle svg {
+    width: 18px;
+    height: 18px;
+}
+
+/* 播放状态：隐藏播放，显示暂停 */
+.bgm-toggle.is-playing .bgm-play-icon { display: none !important; }
+.bgm-toggle.is-playing .bgm-pause-icon { display: block !important; }
+
+/* 加载状态：隐藏播放和暂停，显示 Loading */
+.bgm-toggle.is-loading .bgm-play-icon,
+.bgm-toggle.is-loading .bgm-pause-icon { display: none !important; }
+.bgm-toggle.is-loading .bgm-loading-icon { display: block !important; }
+
+
+/* ====================
+   关于页面 (About Page) 专用样式
+   ==================== */
+
+/* 核心修复：解除主页 .container 的 flex 限制 */
+[data-barba-namespace="about"] .container {
+    display: block !important; /* 强制垂直排列，不继承主页的横向布局 */
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem;
+}
+
+.about-header {
+    text-align: center;
+    padding: 2rem 1.5rem 3rem;
+}
+
+.about-avatar {
+    width: 260px;
+    height: 260px;
+    border-radius: 50%;
+    margin-bottom: 1.5rem;
+    object-fit: cover;
+    border: 3px solid var(--border-color);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+}
+
+.about-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    color: var(--text-primary);
+}
+
+.about-bio {
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+}
+
+/* 文章统计卡片 */
+.stats-summary {
+    display: flex;
+    justify-content: center;
+    gap: clamp(1rem, 5vw, 4rem); /* 响应式间距 */
+    margin: 2rem 0;
+    padding: 2rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+}
+
+.stat-item { text-align: center; }
+.stat-number {
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+    line-height: 1;
+}
+.stat-label {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin-top: 0.5rem;
+}
+
+/* GitHub 风格贡献日历 */
+.contribution-section {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin: 2rem 0;
+}
+
+.contribution-wrapper {
+    display: flex;
+    margin-top: 10px;
+}
+
+.contribution-days-label {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    margin-right: 8px;
+    padding-top: 22px; /* 对应月份标签的高度 */
+}
+
+.contribution-day-label {
+    height: 11px;
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 11px;
+}
+
+.contribution-graph-container {
+    flex: 1;
+    overflow-x: auto;
+    padding-bottom: 5px;
+}
+
+.contribution-months {
+    display: flex;
+    height: 20px;
+    margin-bottom: 2px;
+}
+
+.contribution-month {
+    font-size: 12px;
+    color: var(--text-muted);
+    flex-shrink: 0;
+}
+
+.contribution-graph {
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 3px;
+}
+
+.contribution-week {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 3px;
+    flex-shrink: 0;
+}
+
+.contribution-day {
+    width: 11px;
+    height: 11px;
+    border-radius: 2px;
+    background: var(--bg-hover);
+}
+
+/* 颜色分级 - 深色 */
+.contribution-day.level-1 { background: #0e4429; }
+.contribution-day.level-2 { background: #006d32; }
+.contribution-day.level-3 { background: #26a641; }
+.contribution-day.level-4 { background: #39d353; }
+
+/* 颜色分级 - 浅色 */
+.light .contribution-day.level-1 { background: #9be9a8; }
+.light .contribution-day.level-2 { background: #40c463; }
+.light .contribution-day.level-3 { background: #30a14e; }
+.light .contribution-day.level-4 { background: #216e39; }
+
+/* 图例布局 */
+.contribution-legend {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end; /* 靠右对齐更像 GitHub */
+    gap: 0.5rem;
+    margin-top: 2rem;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+/* 标签云 */
+.tag-stats-section {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin: 2rem 0;
+}
+
+.tag-cloud {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+
+.tag-stat-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    transition: all 0.2s ease;
+}
+
+.tag-stat-item:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+}
+
+.tag-count {
+    background: var(--accent);
+    color: white;
+    font-size: 0.75rem;
+    padding: 1px 6px;
+    border-radius: 10px;
+}
+
+/* 妙妙工具 */
+.tools-section {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin: 2rem 0;
+}
+
+.tool-item {
+    display: flex;
+    gap: 1.5rem;
+    padding: 1.5rem;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    transition: 0.2s;
+}
+
+.tool-item:hover { border-color: var(--accent); }
+
+
+.nav-controls {
+    display: flex !important;
+    align-items: center;
+    gap: 12px;
+    margin-left: 10px;
+}
+
+/* 按钮基础样式，防止在不同页面高度不一 */
+.theme-toggle, .bgm-toggle {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 5px;
+    transition: color 0.2s;
+}
+
+.theme-toggle:hover, .bgm-toggle:hover {
+    color: var(--accent);
 }

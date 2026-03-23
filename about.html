@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <meta content="关于 - YoungSimpleBoy 的博客" name="description" />
+    <title>关于 - YoungSimpleBoy 的博客</title>
+    <link href="/style.css" rel="stylesheet"/>
+    <script src="https://unpkg.com/@barba/core"></script>
+    <script src="https://unpkg.com/tone@14.7.77/build/Tone.js"></script>
+    <script src="https://unpkg.com/@tonejs/midi"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <link href="https://fonts.googleapis.com" rel="preconnect"/>
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+    <link href="https://cdn.jsdelivr.net/npm/katex/dist/katex.min.css" rel="stylesheet"/>
+    <link href="https://cdn.jsdelivr.net/npm/katex-copytex@latest/dist/katex-copytex.min.css" rel="stylesheet" type="text/css"/>
+    <script async="" src="https://cdn.jsdelivr.net/npm/katex-copytex@latest/dist/katex-copytex.min.js"></script>
+
+    <script>
+        (function () {
+            var savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'light') document.documentElement.classList.add('light');
+        })();
+    </script>
+</head>
+
+<body data-barba="wrapper">
+    <header class="header">
+        <nav class="nav-container">
+            <a href="/" class="logo">~/blog</a>
+            <button aria-label="菜单" class="mobile-menu-btn" id="mobileMenuBtn">
+                <svg class="menu-icon" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+                    <path d="M4 6h16M4 12h16M4 18h16" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+                    </path>
+                </svg>
+            </button>
+            <ul class="nav-links" id="navLinks">
+                <li><a href="/#posts" class="nav-link">文章</a></li>
+                <li><a class="nav-link" href="/#posts">搜索</a></li>
+                <li><a class="nav-link" href="/about.html">关于</a></li>
+                <li>
+                    <button aria-label="切换主题" class="theme-toggle" id="themeToggle">
+                        <svg class="sun-icon" fill="none" height="18" stroke="currentColor" stroke-width="2"
+                            viewbox="0 0 24 24" width="18">
+                            <circle cx="12" cy="12" r="5"></circle>
+                            <line x1="12" x2="12" y1="1" y2="3"></line>
+                            <line x1="12" x2="12" y1="21" y2="23"></line>
+                            <line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line>
+                            <line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line>
+                            <line x1="1" x2="3" y1="12" y2="12"></line>
+                            <line x1="21" x2="23" y1="12" y2="12"></line>
+                            <line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line>
+                            <line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line>
+                        </svg>
+                        <svg class="moon-icon" fill="none" height="18" stroke="currentColor" stroke-width="2"
+                            viewbox="0 0 24 24" width="18">
+                            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                        </svg>
+                    </button>
+                </li>
+                <li>
+                    <button class="music-btn bgm-toggle" id="bgmToggle" title="播放/暂停 BGM">
+                        <svg class="bgm-play-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" width="18" height="18">
+                            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                        </svg>
+                        <svg class="bgm-pause-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" style="display: none;" width="18" height="18">
+                            <rect x="6" y="4" width="4" height="16"></rect>
+                            <rect x="14" y="4" width="4" height="16"></rect>
+                        </svg>
+                        <svg class="bgm-loading-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" style="display: none;" width="18" height="18">
+                            <circle cx="12" cy="12" r="10" stroke-dasharray="31.4 31.4" stroke-dashoffset="0">
+                                <animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12"
+                                    dur="1s" repeatCount="indefinite" />
+                            </circle>
+                        </svg>
+                    </button>
+                </li>
+            </ul>
+        </nav>
+    </header>
+
+    <main data-barba="container" data-barba-namespace="about">
+        <div class="container">
+            <section class="about-header">
+                <img alt="头像" class="about-avatar" src="asset/avatar.png" />
+                <h1 class="about-title">YoungSimpleBoy</h1>
+                <p class="about-bio">正在输入文本...</p>
+            </section>
+
+            <div class="stats-summary">
+                <div class="stat-item">
+                    <div class="stat-number" id="postCount">0</div>
+                    <div class="stat-label">篇文章</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="tagCount">0</div>
+                    <div class="stat-label">个标签</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="activeDays">0</div>
+                    <div class="stat-label">活跃天数</div>
+                </div>
+            </div>
+
+            <section class="contribution-section">
+                <h2 class="contribution-title">贡献日历</h2>
+                <div class="contribution-wrapper">
+                    <div class="contribution-days-label">
+                        <div class="contribution-day-label">Mon</div>
+                        <div class="contribution-day-label"></div>
+                        <div class="contribution-day-label">Wed</div>
+                        <div class="contribution-day-label"></div>
+                        <div class="contribution-day-label">Fri</div>
+                    </div>
+                    <div class="contribution-graph-container">
+                        <div class="contribution-months" id="contributionMonths"></div>
+                        <div class="contribution-graph" id="contributionGraph"></div>
+                    </div>
+                </div>
+                <div class="contribution-legend">
+                    <span>少</span>
+                    <span class="contribution-day level-1"></span>
+                    <span class="contribution-day level-2"></span>
+                    <span class="contribution-day level-3"></span>
+                    <span class="contribution-day level-4"></span>
+                    <span>多</span>
+                </div>
+            </section>
+
+            <section class="tag-stats-section">
+                <h2 class="tag-stats-title">标签分布</h2>
+                <div class="tag-cloud" id="tagCloud"></div>
+            </section>
+
+            <section class="tools-section">
+                <h2 class="tools-title">『妙妙工具』</h2>
+                <div class="tools-list">
+                    <div class="tool-item">
+                        <div class="tool-icon">🎹</div>
+                        <div class="tool-info">
+                            <h3 class="tool-name">网页 MIDI 播放器</h3>
+                            <p class="tool-desc">一个简洁的网页 MIDI 音乐播放器...</p>
+                            <a class="tool-link" href="toolkit/midi_player/index.html" target="_blank">打开工具 →</a>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+</body>
+<footer class="footer">
+    <div class="footer-content">
+        <p>身投尘影，神居流形。落于人世，本征自明</p>
+        <p>Built with ❤️ by <a href="https://github.com/YoungSimpleBoy" target="_blank">YoungSimpleBoy</a></p>
+    </div>
+</footer>
+<script src="/script.js"></script>
+</html>

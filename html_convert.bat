@@ -76,7 +76,7 @@ if not "%excerpt%"=="" set args=%args% --excerpt "%excerpt%"
 
 :: 调用 Python 脚本
 echo 正在执行转换...
-python "%~dp0html_convert.py" %args%
+python "%~dp0toolkit/html_convert.py" %args%
 
 :: 转换完成后，询问是否打开文章和主页
 echo.
