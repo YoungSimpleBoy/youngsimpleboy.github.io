@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MIDI 可视化播放器</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://unpkg.com/tone@14.7.77/build/Tone.js"></script>
+    <script src="https://unpkg.com/@tonejs/midi"></script>
+</head>
+<body>
+    <div class="header">
+        <h1>MIDI 可视化播放器</h1>
+        <button class="theme-toggle" id="themeToggle" title="切换主题">
+            <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="5"/>
+                <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+            </svg>
+            <svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+            </svg>
+        </button>
+    </div>
+    
+    <canvas id="canvas"></canvas>
+    
+    <div class="bottom-controls">
+        <div class="progress-section">
+            <input type="file" id="fileInput" accept=".mid,.midi">
+            <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
+                上传 MIDI
+            </button>
+            <span class="select-label">示例</span>
+            <div class="custom-select-wrapper">
+                <select id="exampleSelect" class="custom-select">
+                    <option value="">选择示例...</option>
+                    <option value="example_midi/example01.mid">示例 1</option>
+                    <option value="example_midi/example02.mid">示例 2</option>
+                    <option value="example_midi/example03.mid">示例 3</option>
+                </select>
+            </div>
+            <button id="playBtn" disabled>
+                <svg id="playIcon" viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg>
+            </button>
+            <span id="currentTime">0:00</span>
+            <input type="range" id="progressSlider" min="0" max="100" value="0" step="0.1" class="progress-bar">
+            <span id="totalTime">0:00</span>
+        </div>
+        <div class="settings-section">
+            <div class="volume-control">
+                <span>音量</span>
+                <input type="range" id="volumeSlider" min="-40" max="0" value="-6" step="1" class="slider">
+                <span id="volumeValue">-6 dB</span>
+            </div>
+            <div class="volume-control">
+                <span>速度</span>
+                <input type="range" id="speedSlider" min="50" max="350" value="200" step="10" class="slider">
+                <span id="speedValue">200</span>
+            </div>
+            <div class="volume-control">
+                <span>辅助信息</span>
+                <label class="switch-container">
+                    <input type="checkbox" id="infoToggle" checked>
+                    <span class="checkmark"></span>
+                </label>
+            </div>
+            <div class="volume-control">
+                <span>音色</span>
+                <div class="custom-select-wrapper">
+                    <select id="instrumentSelect" class="custom-select">
+                        <option value="default">正弦合成器（默认）</option>
+                        <option value="piano">真实钢琴（推荐！需加载）</option>
+                        <option value="fm">FM 电钢琴（不稳定）</option>
+                        <option value="am">AM 复古感（不稳定）</option>
+                        <option value="fat">胖锯齿波（不稳定）</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <p class="status" id="status">请上传 MIDI 文件或选择示例</p>
+    <p class="info">空格暂停/继续 | R 重置</p>
+
+    <!-- 音轨控制面板 -->
+    <div class="track-panel" id="trackPanel">
+        <div class="midi-info" id="midiInfo">
+            <span class="midi-info-empty">加载 MIDI 文件后显示文件信息</span>
+        </div>
+        <div class="track-list" id="trackList">
+            <p class="track-empty">加载 MIDI 文件后显示音轨信息</p>
+        </div>
+    </div>
+
+    <!-- 页脚 -->
+    <footer class="footer">
+        <div class="footer-links">
+            <a href="../../index.html" target="_blank" rel="noopener">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                    <polyline points="9 22 9 12 15 12 15 22"/>
+                </svg>
+                个人主页
+            </a>
+            <a href="https://github.com/YoungSimpleBoy">
+                <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
+                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                </svg>
+                GitHub
+            </a>
+            <a href="mailto:2404716575@qq.com" target="_blank" rel="noopener">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                    <polyline points="22,6 12,13 2,6"/>
+                </svg>
+                E-mail
+            </a>
+            <a href="https://space.bilibili.com/52652807" target="_blank" rel="noopener">
+                <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
+                    <path d="M17.813 4.653h.854c1.51.054 2.769.578 3.773 1.574 1.004.995 1.524 2.249 1.56 3.76v7.36c-.036 1.51-.556 2.769-1.56 3.773s-2.262 1.524-3.773 1.56H5.333c-1.51-.036-2.769-.556-3.773-1.56S.036 18.858 0 17.347v-7.36c.036-1.511.556-2.765 1.56-3.76 1.004-.996 2.262-1.52 3.773-1.574h.774l-1.174-1.12a1.234 1.234 0 0 1-.373-.906c0-.356.124-.659.373-.907l.027-.027c.267-.249.573-.373.92-.373.347 0 .653.124.92.373L9.653 4.44c.071.071.134.142.187.213h4.267a.836.836 0 0 1 .16-.213l2.853-2.747c.267-.249.573-.373.92-.373.347 0 .662.151.929.4.267.249.391.551.391.907 0 .355-.124.657-.373.906zM5.333 7.24c-.746.018-1.373.276-1.88.773-.506.498-.769 1.13-.786 1.894v7.52c.017.764.28 1.395.786 1.893.507.498 1.134.756 1.88.773h13.334c.746-.017 1.373-.275 1.88-.773.506-.498.769-1.129.786-1.893v-7.52c-.017-.765-.28-1.396-.786-1.894-.507-.497-1.134-.755-1.88-.773zM8 11.107c.373 0 .684.124.933.373.25.249.383.569.4.96v1.173c-.017.391-.15.711-.4.96-.249.25-.56.374-.933.374s-.684-.125-.933-.374c-.25-.249-.383-.569-.4-.96V12.44c0-.373.129-.689.386-.947.258-.257.574-.386.947-.386zm8 0c.373 0 .684.124.933.373.25.249.383.569.4.96v1.173c-.017.391-.15.711-.4.96-.249.25-.56.374-.933.374s-.684-.125-.933-.374c-.25-.249-.383-.569-.4-.96V12.44c.017-.391.15-.711.4-.96.249-.249.56-.373.933-.373z"/>
+                </svg>
+                bilibili
+            </a>
+        </div>
+        <p class="copyright">© 2026 YoungSimpleBoy. All rights reserved.</p>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>

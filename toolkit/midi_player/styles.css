@@ -1,0 +1,627 @@
+/* ==================== CSS变量定义 ==================== */
+:root {
+    /* 深色主题 (默认) */
+    --bg-primary: #111;
+    --bg-secondary: #1a1a1a;
+    --bg-hover: #222;
+    --text-primary: #fff;
+    --text-secondary: #888;
+    --text-muted: #666;
+    --border-color: #333;
+    --accent: #667eea;
+    --accent-hover: #764ba2;
+    --canvas-bg: #000;
+    --canvas-shadow: rgba(0,0,0,0.5);
+    
+    /* 深色模式专属样式 */
+    --upload-btn-bg: rgba(255,255,255,0.1);
+    --upload-btn-border: rgba(255,255,255,0.3);
+    --upload-btn-hover: rgba(255,255,255,0.2);
+    --select-bg: rgba(255,255,255,0.05);
+    --select-border: rgba(255,255,255,0.15);
+    --select-text: #eee;
+    --select-hover-bg: rgba(255,255,255,0.1);
+    --slider-bg: rgba(255,255,255,0.2);
+    --progress-bg: rgba(255,255,255,0.2);
+    --switch-bg: rgba(255,255,255,0.2);
+    
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* 浅色主题 */
+.light {
+    --bg-primary: #f5f5f5;
+    --bg-secondary: #fff;
+    --bg-hover: #e8e8e8;
+    --text-primary: #1a1a1a;
+    --text-secondary: #555;
+    --text-muted: #888;
+    --border-color: #ddd;
+    --accent: #667eea;
+    --accent-hover: #764ba2;
+    --canvas-bg: #fff;
+    --canvas-shadow: rgba(0,0,0,0.15);
+    
+    /* 浅色模式专属样式 */
+    --upload-btn-bg: rgba(102,126,234,0.1);
+    --upload-btn-border: rgba(102,126,234,0.3);
+    --upload-btn-hover: rgba(102,126,234,0.2);
+    --select-bg: rgba(102,126,234,0.05);
+    --select-border: rgba(102,126,234,0.2);
+    --select-text: #333;
+    --select-hover-bg: rgba(102,126,234,0.1);
+    --slider-bg: rgba(102,126,234,0.2);
+    --progress-bg: rgba(102,126,234,0.2);
+    --switch-bg: rgba(102,126,234,0.2);
+}
+
+/* ==================== 基础样式 ==================== */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: 'Segoe UI', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* ==================== 头部样式 ==================== */
+.header {
+    width: 95%;
+    max-width: 1400px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+h1 {
+    font-size: 1.5rem;
+    font-weight: 300;
+    letter-spacing: 0.1em;
+    color: var(--text-primary);
+}
+
+/* 主题切换按钮 */
+.theme-toggle {
+    background: var(--bg-hover);
+    border: 1px solid var(--border-color);
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 50%;
+    color: var(--text-secondary);
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.theme-toggle:hover {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+}
+.theme-toggle svg {
+    width: 20px;
+    height: 20px;
+}
+.sun-icon { display: block; }
+.moon-icon { display: none; }
+.light .sun-icon { display: none; }
+.light .moon-icon { display: block; }
+
+/* ==================== 按钮样式 ==================== */
+button {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+#playBtn {
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+#playBtn:hover { 
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+}
+#playBtn:disabled { 
+    opacity: 0.4; 
+    cursor: not-allowed; 
+    transform: none;
+    box-shadow: none;
+}
+#playBtn svg {
+    width: 16px;
+    height: 16px;
+    fill: white;
+}
+
+#fileInput { display: none; }
+.upload-btn {
+    background: var(--upload-btn-bg);
+    color: var(--text-primary);
+    border: 1px dashed var(--upload-btn-border);
+}
+.upload-btn:hover { 
+    background: var(--upload-btn-hover);
+    border-color: var(--accent);
+}
+
+/* ==================== 控制区域样式 ==================== */
+.volume-control {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--text-secondary);
+    font-size: 14px;
+    white-space: nowrap;
+}
+.select-label {
+    color: var(--text-secondary);
+    font-size: 14px;
+}
+
+/* 滑块样式 */
+.slider {
+    width: 100px;
+    cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--slider-bg);
+}
+.slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+.slider::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+#volumeValue { min-width: 50px; }
+
+/* ==================== 画布样式 ==================== */
+#canvas {
+    background: var(--canvas-bg);
+    border-radius: 12px;
+    box-shadow: 0 8px 32px var(--canvas-shadow);
+    cursor: pointer;
+    display: block;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* ==================== 底部信息 ==================== */
+.info { margin-top: 15px; font-size: 12px; color: var(--text-muted); }
+.status { margin-top: 10px; font-size: 14px; color: var(--text-secondary); }
+
+/* ==================== 底部控制栏 ==================== */
+.bottom-controls {
+    width: 95%;
+    max-width: 1400px;
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    margin-top: 15px;
+}
+.progress-section {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--text-secondary);
+    font-size: 14px;
+}
+.progress-bar {
+    width: 200px;
+    height: 8px;
+    cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+    background: var(--progress-bg);
+    border-radius: 4px;
+}
+.progress-bar::-webkit-slider-runnable-track {
+    height: 8px;
+    border-radius: 4px;
+    background: var(--progress-bg);
+}
+.progress-bar::-moz-range-track {
+    height: 8px;
+    border-radius: 4px;
+    background: var(--progress-bg);
+}
+.progress-bar::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+    cursor: pointer;
+    margin-top: -4px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+.progress-bar::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+
+.settings-section {
+    display: flex;
+    gap: 15px;
+}
+
+/* ==================== 开关样式 ==================== */
+.switch-container {
+    position: relative;
+    display: inline-block;
+    width: 34px;
+    height: 20px;
+}
+.switch-container input { opacity: 0; width: 0; height: 0; }
+.checkmark {
+    position: absolute;
+    cursor: pointer;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: var(--switch-bg);
+    transition: .4s;
+    border-radius: 20px;
+}
+.checkmark:before {
+    position: absolute;
+    content: "";
+    height: 14px; width: 14px;
+    left: 3px; bottom: 3px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+input:checked + .checkmark { background: linear-gradient(135deg, var(--accent), var(--accent-hover)); }
+input:checked + .checkmark:before { transform: translateX(14px); }
+
+/* ==================== 自定义选择框 ==================== */
+.custom-select-wrapper {
+    position: relative;
+    display: inline-block;
+}
+.custom-select {
+    appearance: none;
+    -webkit-appearance: none;
+    background: var(--select-bg);
+    color: var(--select-text);
+    border: 1px solid var(--select-border);
+    padding: 6px 30px 6px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    outline: none;
+    transition: all 0.2s;
+}
+.custom-select:hover {
+    background: var(--select-hover-bg);
+    border-color: var(--accent);
+}
+.custom-select-wrapper::after {
+    content: "▼";
+    font-size: 10px;
+    color: var(--text-secondary);
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+}
+.custom-select option {
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    padding: 10px;
+}
+
+/* ==================== 页脚样式 ==================== */
+.footer {
+    width: 95%;
+    max-width: 1400px;
+    margin-top: 40px;
+    padding: 20px 0;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.footer-links {
+    display: flex;
+    gap: 24px;
+    align-items: center;
+}
+
+.footer-links a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    transition: color 0.2s ease;
+}
+
+.footer-links a:hover {
+    color: var(--accent);
+}
+
+.footer-links svg {
+    width: 16px;
+    height: 16px;
+}
+
+.copyright {
+    color: var(--text-muted);
+    font-size: 12px;
+}
+
+/* ==================== 音轨控制面板 ==================== */
+.track-panel {
+    width: 95%;
+    max-width: 1400px;
+    margin-top: 20px;
+    padding: 16px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+}
+
+.track-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.track-panel-title {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.track-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.track-empty {
+    color: var(--text-muted);
+    font-size: 13px;
+    text-align: center;
+    padding: 20px;
+    width: 100%;
+}
+
+.track-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    background: var(--bg-hover);
+    border-radius: 8px;
+    border: 1px solid transparent;
+    transition: all 0.2s;
+    width: calc(50% - 5px); /* 如果空间不够，可以让它占半行，或者根据你的布局调整 */
+    min-width: 280px;
+}
+
+.track-volume-slider {
+    flex-grow: 1;
+    max-width: 80px;
+    margin-left: auto; /* 将滑块推到最右侧 */
+    -webkit-appearance: none;
+    appearance: none;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--slider-bg);
+    cursor: pointer;
+}
+
+.track-volume-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    /* 使用传入的 --track-hue CSS变量给对应轨道滑块染色 */
+    background: hsl(var(--track-hue), 80%, 55%);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+.track-volume-slider::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: none;
+    background: hsl(var(--track-hue), 80%, 55%);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+.track-item:hover {
+    border-color: var(--accent);
+}
+
+.track-item.disabled {
+    opacity: 0.5;
+}
+
+.track-name {
+    font-size: 13px;
+    color: var(--text-primary);
+    font-weight: 500;
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.track-name::before {
+    content: '';
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: hsl(var(--track-hue), 100%, 60%);
+    margin-right: 6px;
+    vertical-align: middle;
+}
+
+.track-sep {
+    color: var(--text-muted);
+    font-size: 11px;
+}
+
+.track-notes {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.track-range {
+    font-size: 12px;
+    color: var(--accent);
+    font-weight: 500;
+}
+
+.track-count {
+    font-size: 12px;
+    color: var(--text-secondary);
+    background: var(--bg-hover);
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-weight: 500;
+}
+
+/* MIDI 文件信息行 */
+.midi-info {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 12px;
+}
+
+.midi-icon {
+    width: 18px;
+    height: 18px;
+    color: var(--accent);
+    flex-shrink: 0;
+}
+
+.midi-filename {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.midi-divider {
+    color: var(--text-muted);
+    font-size: 12px;
+}
+
+.midi-meta {
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.midi-info-empty {
+    color: var(--text-muted);
+    font-size: 13px;
+}
+
+/* 音轨开关复选框样式 */
+.track-toggle {
+    position: relative;
+    display: inline-block;
+    width: 34px;
+    height: 20px;
+    flex-shrink: 0;
+}
+
+.track-toggle input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.track-checkbox {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--slider-bg);
+    transition: .3s;
+    border-radius: 20px;
+}
+
+.track-checkbox::before {
+    position: absolute;
+    content: "";
+    height: 14px;
+    width: 14px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: .3s;
+    border-radius: 50%;
+}
+
+.track-toggle input:checked + .track-checkbox {
+    background: hsl(var(--track-hue), 80%, 55%);
+}
+
+.track-toggle input:checked + .track-checkbox::before {
+    transform: translateX(14px);
+}
+
+.track-toggle input:checked + .track-checkbox::before {
+    transform: translateX(16px);
+}
+
+.track-toggle input:focus + .track-checkbox {
+    box-shadow: 0 0 0 2px var(--accent);
+}
