@@ -7,6 +7,7 @@
 let clockInterval = null; // 时钟定时器，防止叠加
 let pendingHash = null;   // 用于跨页 hash 滚动（解决 Barba 丢 hash 的 Bug）
 let pendingSearchTag = null;   // 用于标签云跨页搜索
+let mobileGlobalListenersAdded = false;   // ← 新增这行
 
 // ====================
 // 全局文章数据（自动从首页同步，用于 about 页）
@@ -415,41 +416,40 @@ function initThemeToggle() {
 // 6. 初始化移动端菜单（全局只需一次）
 // ====================
 function initMobileMenu() {
-    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
-    const navLinks = document.getElementById('navLinks');
+    const menuBtn = document.querySelector('.mobile-menu-btn');
+    const navLinks = document.querySelector('.nav-links');
+    const menuIcon = menuBtn ? menuBtn.querySelector('i') : null;
 
-    if (!mobileMenuBtn || !navLinks) return;
-
-    function toggleMobileMenu() {
-        navLinks.classList.toggle('active');
-        const menuIcon = mobileMenuBtn.querySelector('.menu-icon');
-        if (menuIcon) {
-            menuIcon.innerHTML = navLinks.classList.contains('active')
-                ? `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>`
-                : `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>`;
+    // 1. 内部关闭函数：负责把状态全部重置（类名、图标、滚动条）
+    window.closeMobileMenu = function() {
+        if (navLinks && navLinks.classList.contains('active')) {
+            navLinks.classList.remove('active');
+            if (menuIcon) menuIcon.className = 'ri-menu-line'; // 强制变回三道杠
+            document.body.style.overflow = ''; // 恢复滚动
         }
     }
 
-    function closeMobileMenu() {
-        navLinks.classList.remove('active');
-        const menuIcon = mobileMenuBtn.querySelector('.menu-icon');
-        if (menuIcon) {
-            menuIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>`;
-        }
-    }
+    // 2. 汉堡按钮点击逻辑
+    if (menuBtn && navLinks) {
+        menuBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); // 防止触发下方的全局点击关闭
+            const isOpen = navLinks.classList.toggle('active');
+            if (menuIcon) {
+                menuIcon.className = isOpen ? 'ri-close-line' : 'ri-menu-line';
+            }
+            document.body.style.overflow = isOpen ? 'hidden' : '';
+        });
 
-    mobileMenuBtn.addEventListener('click', toggleMobileMenu);
-
-    // ESC 关闭菜单
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && navLinks.classList.contains('active')) {
+        // 3. 点击导航栏内部（比如点链接）直接关闭
+        navLinks.addEventListener('click', () => {
             closeMobileMenu();
-        }
-    });
+        });
+    }
 
-    // 窗口调整大小时关闭菜单
-    window.addEventListener('resize', () => {
-        if (window.innerWidth > 768) {
+    // 4. 点击页面任何其他地方（菜单外）也关闭
+    document.addEventListener('click', (e) => {
+        if (navLinks && navLinks.classList.contains('active') && 
+            !navLinks.contains(e.target) && !menuBtn.contains(e.target)) {
             closeMobileMenu();
         }
     });
@@ -752,15 +752,7 @@ function rebindNavEvents() {
     // 2. 重新绑定 BGM 开关 (改为调用 initBGM)
     initBGM(); 
 
-    // 3. 重新绑定移动端菜单
-    const menuBtn = document.getElementById('mobileMenuBtn');
-    const navLinks = document.getElementById('navLinks');
-    if (menuBtn && navLinks) {
-        menuBtn.onclick = () => {
-            navLinks.classList.toggle('active');
-            menuBtn.classList.toggle('active');
-        };
-    }
+    // 3. 移动端菜单绑定已移到 initMobileMenu，无需在这里重复
 }
 
 
@@ -852,3 +844,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+// 每次 Barba 开始切换页面前，先强制关掉手机端菜单
+if (typeof barba !== 'undefined') {
+    barba.hooks.before(() => {
+        if (window.closeMobileMenu) window.closeMobileMenu();
+    });
+}

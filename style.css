@@ -466,33 +466,107 @@ a:hover {
 
 /* 响应式设计 */
 @media (max-width: 768px) {
+    .about-avatar {
+        width: 160px;
+        height: 160px;
+        margin-bottom: 1rem;
+    }
+
+    /* 确保导航栏内部不会因为右侧按钮过多而被撑爆 */
+    .nav-container {
+        display: flex;
+        flex-wrap: nowrap; /* 核心：禁止内部元素换行 */
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.6rem 1rem;
+        width: 100%;
+    }
+
+    .logo {
+        flex-shrink: 0;
+        font-size: 1.1rem;
+        z-index: 101; /* 确保 Logo 始终可点 */
+    }
+
+    /* 将控制按钮区（深浅色、音乐）与汉堡菜单按比例排列 */
+    .nav-controls {
+        display: flex !important;
+        flex-direction: row;
+        align-items: center;
+        gap: 0.5rem; /* 缩小间距 */
+        margin-left: auto;
+        flex-shrink: 0; /* 防止按钮区被压缩变形 */
+        z-index: 101; /* 确保控制按钮始终在菜单最上层 */
+    }
+    
+    /* 适当缩小按钮本身的尺寸以腾出空间 */
+    .theme-toggle, 
+    .music-btn, 
+    .mobile-menu-btn {
+        width: 34px;
+        height: 34px;
+        padding: 5px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .mobile-menu-btn {
+        display: block;
+    }
+
+    .about-title {
+        font-size: 1.6rem; /* 适当减小标题字号 */
+    }
+
+    /* 允许统计数据卡片在小屏幕上多行显示，防止互相挤压 */
+    .stats-summary {
+        flex-wrap: wrap;
+        gap: 2rem;
+        padding: 1.5rem 1rem;
+    }
+    
+    .stat-number {
+        font-size: 1.8rem;
+    }
+
     .mobile-menu-btn {
         display: block;
     }
 
     .nav-links {
         position: fixed;
-        top: 0;
+        /* 从顶部导航栏下方开始，避免遮挡头部按钮 */
+        top: 60px; 
         left: 0;
         right: 0;
         bottom: 0;
+        height: calc(100vh - 60px); 
         background-color: var(--bg-primary);
         flex-direction: column;
         justify-content: center;
         align-items: center;
-        gap: 1.5rem;
+        gap: 2rem;
+        /* 默认隐藏 */
         opacity: 0;
         visibility: hidden;
-        transition: all 0.3s ease;
+        pointer-events: none; /* 核心：隐藏时彻底禁止点击，防误触 */
+        z-index: 99;
+        
+        transition: opacity 0.3s ease, visibility 0.3s ease;
     }
 
     .nav-links.active {
         opacity: 1;
         visibility: visible;
+        pointer-events: auto; /* 展开时恢复点击 */
     }
 
+    
+
     .nav-link {
-        font-size: 1.25rem;
+        font-size: 1.5rem;
+        padding: 0.5rem 2rem;
     }
 
     .main-content {
@@ -907,13 +981,45 @@ hr {
 }
 
 /* 移动端适配 */
-@media (max-width: 600px) {
-    .date-card {
-        flex-direction: column;
-        align-items: flex-start;
+@media (max-width: 768px) {
+    /* 假设你的父容器叫 .home-header 或 .date-yiji-wrapper */
+    .home-header {
+        display: flex;
+        flex-direction: column; /* 核心：改为竖向排列 */
+        gap: 12px;
+        width: 100%;
     }
-    .date-info {
-        gap: 0.8rem;
+
+    /* 时间卡片：撑满整行 */
+    .date-card {
+        width: 100% !important;
+        justify-content: center; /* 内容居中 */
+    }
+
+    /* 宜/忌的包裹容器 */
+    .yiji-container {
+        display: grid;
+        grid-template-columns: 1fr 1fr; /* 核心：均分两列 */
+        gap: 10px;
+        width: 100%;
+    }
+
+    /* 宜/忌卡片：取消外边距，统一高度 */
+    .yiji-card {
+        margin: 0 !important;
+        width: 100% !important;
+        padding: 12px 8px; /* 适当减小内边距防止文字溢出 */
+    }
+
+    /* 缩小文字大小以适应窄屏 */
+    .yiji-title {
+        font-size: 0.85rem;
+    }
+    .yiji-content {
+        font-size: 0.9rem;
+        white-space: nowrap;      /* 防止内部文字换行 */
+        overflow: hidden;
+        text-overflow: ellipsis;  /* 实在太长就显示省略号 */
     }
 }
 
