@@ -236,6 +236,25 @@ def convert(input_file, output_file, date=None, category="数学", tags=None, ex
         if not skipped_h1 and child.name == "h1":
             skipped_h1 = True
             continue
+        # ==================== 新增：独立公式自动居中 ====================
+        if child.name == "mjx-container":
+            # 判断是否为独立一行公式（最常见情况：被 <p> 单独包裹）
+            parent = child.parent
+            is_block = False
+
+            if parent and parent.name == "p":
+                # 如果 <p> 里只有这个 mjx-container（或只有很少文字），视为独立公式
+                if len(parent.find_all(recursive=False)) == 1:
+                    is_block = True
+            if is_block:
+                wrapper = tpl_soup.new_tag("div", style="text-align: center; margin: 1.5em 0;")
+                wrapper.append(copy.copy(child))
+                content_nodes.append(wrapper)
+            else:
+                # 内联公式直接复制
+                content_nodes.append(copy.copy(child))
+            continue
+        # 原来的 KaTeX script 处理
         if child.name == "script" and child.get("src") and "katex" in child.get("src"):
             script_nodes.append(copy.copy(child))
         elif child.name == "script":
