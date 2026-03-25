@@ -2,8 +2,8 @@
 // 日期: 2026-03-22
 // 功能: 一个MIDI播放与可视化组件
 // ==================== 配置 ====================
-const WIDTH = 1440;     // 画布宽度
-const HEIGHT = 720;     // 画布高度
+let WIDTH = window.innerWidth > 1440 ? 1440 : (window.innerWidth * 0.95);
+let HEIGHT = window.innerWidth <= 768 ? WIDTH * 0.8 : 720;
 const DEFAULT_SPEED = 200;       // 默认速度：像素/秒
 let SPEED = DEFAULT_SPEED;       // 速度：像素/秒（可调节）
 const THICKNESS = 8;   // 音符厚度
@@ -496,31 +496,23 @@ function updateProgressUI() {
 }
 
 // 拖动进度条开始
-progressSlider.addEventListener('mousedown', () => {
-    isDraggingProgress = true;
-});
+progressSlider.addEventListener('mousedown', () => isDraggingProgress = true);
+progressSlider.addEventListener('touchstart', () => isDraggingProgress = true, {passive: true});
 
 // 拖动进度条结束
-progressSlider.addEventListener('mouseup', () => {
+function handleSeekEnd() {
     if (notes.length > 0 && gridLines.length > 0) {
         const percent = parseFloat(progressSlider.value);
         const rawSeekTime = (percent / 100) * totalDuration;
 
-        // --- 核心吸附逻辑 ---
-        // 在 gridLines 中找到与 rawSeekTime 最接近的时间点
         let snappedTime = gridLines
-            .filter(line => line.isMeasure) // 只筛选出粗的小节线
+            .filter(line => line.isMeasure)
             .reduce((prev, curr) => {
                 return (Math.abs(curr.time - rawSeekTime) < Math.abs(prev.time - rawSeekTime) ? curr : prev);
             }).time;
 
-        // 如果距离最近的网格线太远（比如超过 0.5 秒），可以不吸附，
-        // 但通常在 DAW 中为了手感，会直接吸附。
         currentTime = snappedTime;
-        
-        // 同步更新滑块位置，让用户看到"磁吸"跳动的效果
         progressSlider.value = (currentTime / totalDuration) * 100;
-        // --------------------
 
         if (isPlaying) {
             Tone.Transport.stop();
@@ -544,16 +536,11 @@ progressSlider.addEventListener('mouseup', () => {
     }
     isDraggingProgress = false;
     updateProgressUI();
-});
+}
 
-// 拖动进度条时实时更新显示
-progressSlider.addEventListener('input', () => {
-    if (notes.length > 0) {
-        const percent = parseFloat(progressSlider.value);
-        const previewTime = (percent / 100) * totalDuration;
-        currentTimeEl.textContent = formatTime(previewTime);
-    }
-});
+progressSlider.addEventListener('mouseup', handleSeekEnd);
+// 添加手机端触摸结束事件
+progressSlider.addEventListener('touchend', handleSeekEnd);
 
 // ==================== 工具：停止并清理 ====================
 function stopAndClear() {
