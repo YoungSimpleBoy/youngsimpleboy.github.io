@@ -625,3 +625,93 @@ input:checked + .checkmark:before { transform: translateX(14px); }
 .track-toggle input:focus + .track-checkbox {
     box-shadow: 0 0 0 2px var(--accent);
 }
+
+/* ==================== 手机端响应式优化 ==================== */
+@media (max-width: 768px) {
+    body {
+        padding: 10px; /* 缩小外边距 */
+    }
+
+    /* 头部调整 */
+    .header {
+        width: 100%;
+        margin-bottom: 15px;
+    }
+    h1 {
+        font-size: 1.2rem; /* 减小标题字号 */
+    }
+
+    /* 画布自适应 */
+    #canvas {
+        width: 100% !important;
+        height: auto !important;
+        aspect-ratio: 4 / 3; /* 保持固定比例，防止变形 */
+    }
+
+    /* 底部控制栏：改为纵向布局 */
+    .bottom-controls {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 20px;
+    }
+
+    /* 进度条区域：充满整行 */
+    .progress-section {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 15px;
+    }
+    .progress-bar {
+        width: 100%; /* 进度条占满整行 */
+        order: 10;   /* 放到该区域的最后 */
+    }
+    #currentTime, #totalTime {
+        font-size: 12px;
+    }
+
+    /* 设置区域：改为两列或单列 */
+    .settings-section {
+        display: grid;
+        grid-template-columns: 1fr 1fr; /* 手机端每行显示两个设置项 */
+        gap: 15px;
+    }
+    .volume-control {
+        flex-direction: column; /* 标签和滑动条纵向排列，更适合触摸 */
+        align-items: flex-start;
+        gap: 5px;
+    }
+    .slider {
+        width: 100%; /* 滑动条占满分栏宽度 */
+    }
+    .custom-select {
+        width: 100%; /* 下拉框占满 */
+    }
+
+    /* 音轨面板优化 */
+    .track-item {
+        width: 100%; /* 手机上音轨占满整行 */
+        min-width: unset;
+        padding: 12px;
+    }
+    .track-name {
+        max-width: 150px;
+    }
+
+    /* 页脚优化 */
+    .footer-links {
+        display: grid;
+        grid-template-columns: 1fr 1fr; /* 链接两两排列 */
+        gap: 15px;
+        text-align: center;
+    }
+    .footer-links a {
+        justify-content: center;
+    }
+}
+
+/* 针对超小屏幕 (如 iPhone SE) 的微调 */
+@media (max-width: 480px) {
+    .settings-section {
+        grid-template-columns: 1fr; /* 极窄屏幕单列显示 */
+    }
+}
