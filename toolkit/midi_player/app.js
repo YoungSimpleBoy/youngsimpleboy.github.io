@@ -197,6 +197,15 @@ function initTrackPanel() {
                 <option value="inherit">跟随全局</option>
                 <option value="default">正弦合成器</option>
                 <option value="piano">钢琴</option>
+                <option value="violin">小提琴</option>
+                <option value="viola">中提琴</option>
+                <option value="cello">大提琴</option>
+                <option value="piccolo">短笛</option>
+                <option value="flute">长笛</option>
+                <option value="acoustic_guitar">吉他</option>
+                <option value="music_box">八音盒</option>
+                <option value="shamisen">三味线</option>
+                <option value="voice">人声</option>
                 <option value="fm">FM 电钢琴</option>
                 <option value="am">AM 复古</option>
                 <option value="fat">胖锯齿波</option>
@@ -317,6 +326,55 @@ let currentExtraInfoAlpha = 1; // 当前渲染使用的透明度 (0.0 到 1.0 �
 const FADE_SPEED = 0.05;       // 渐变速度，数值越大过渡越快
 
 // ==================== 音频 ====================
+// 乐器库配置表：将 type 映射到对应的资源地址和采样音符
+const SAMPLER_CONFIGS = {
+    'violin': {
+        name: '小提琴',
+        baseUrl: "https://gleitz.github.io/midi-js-soundfonts/FatBoy/violin-mp3/",
+        enhance: 18,
+    },
+    'viola': {
+        name: '中提琴',
+        baseUrl: "https://gleitz.github.io/midi-js-soundfonts/FatBoy/viola-mp3/",
+        enhance: 12,
+    },
+    'cello': {
+        name: '大提琴',
+        baseUrl: "https://gleitz.github.io/midi-js-soundfonts/FatBoy/cello-mp3/",
+        enhance: 18,
+    },
+    'piccolo': {
+        name: '短笛',
+        baseUrl: "https://gleitz.github.io/midi-js-soundfonts/FatBoy/piccolo-mp3/",
+        enhance: 15,
+    },
+    'flute': {
+        name: '长笛',
+        baseUrl: "https://gleitz.github.io/midi-js-soundfonts/FatBoy/flute-mp3/",
+        enhance: 15,
+    },
+    'acoustic_guitar': {
+        name: '吉他',
+        baseUrl: "https://gleitz.github.io/midi-js-soundfonts/FatBoy/acoustic_guitar_nylon-mp3/",
+        enhance: 24,
+    },
+    'music_box': {
+        name: '八音盒',
+        baseUrl: "https://gleitz.github.io/midi-js-soundfonts/FatBoy/music_box-mp3/",
+        enhance: 21,
+    },
+    'shamisen': {
+        name: '三味线',
+        baseUrl: "https://gleitz.github.io/midi-js-soundfonts/FatBoy/shamisen-mp3/",
+        enhance: 9,
+    },
+    'voice': {
+        name: '人声',
+        baseUrl: "https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/voice_oohs-mp3/",
+        enhance: 0,
+    }
+};
+// 混音与音频连接
 const reverb = new Tone.Reverb({
     decay: 2,
     wet: 0.2
@@ -330,8 +388,10 @@ const instrumentPool = {
 };
 // 统一乐器创建逻辑
 async function getInstrumentInstance(type) {
+    // 1. 检查缓存池
     if (instrumentPool[type]) return instrumentPool[type];
     let inst;
+    // 2. 检查是否在我们的采样配置集合中
     if (type === 'fm') {
         inst = new Tone.PolySynth(Tone.FMSynth);
     } else if (type === 'am') {
@@ -341,7 +401,7 @@ async function getInstrumentInstance(type) {
             oscillator: { type: "fatsawtooth" }
         });
     } else if (type === 'piano') {
-        statusEl.textContent = '正在加载高保真全键盘采样...';
+        statusEl.textContent = '正在加载 钢琴 采样...';
         inst = new Tone.Sampler({
             // 映射表：涵盖了从低音到高音的关键采样点
             // Tone.js 会自动对中间缺失的音符进行"重采样"插值
@@ -359,22 +419,53 @@ async function getInstrumentInstance(type) {
             release: 1.2,       // 松开按键后的余音长度
             baseUrl: "https://tonejs.github.io/audio/salamander/", // Salamander Grand Piano 开源采样库
             onload: () => {
-                statusEl.textContent = '钢琴音色就绪 (Salamander Grand)';
+                statusEl.textContent = '钢琴音色就绪 (Salamander 三角钢琴，雅马哈 C5)。Ref: tonejs.github.io';
                 inst.connect(reverb); // 必须连接到混响
-                inst.volume.value = parseFloat(volumeSlider.value);
+                inst.volume.value = parseFloat(volumeSlider.value) + 3;
+            }
+        });
+    } else if (type in SAMPLER_CONFIGS) {
+        const config = SAMPLER_CONFIGS[type];
+        statusEl.textContent = `正在加载 ${config.name} 采样...`;
+        inst = new Tone.Sampler({
+            urls: {
+                "A0": "A0.mp3", "B0": "B0.mp3", "C1": "C1.mp3", "D1": "D1.mp3", "E1": "E1.mp3", "F1": "F1.mp3", "G1": "G1.mp3",
+                "A1": "A1.mp3", "B1": "B1.mp3", "C2": "C2.mp3", "D2": "D2.mp3", "E2": "E2.mp3", "F2": "F2.mp3", "G2": "G2.mp3",
+                "A2": "A2.mp3", "B2": "B2.mp3", "C3": "C3.mp3", "D3": "D3.mp3", "E3": "E3.mp3", "F3": "F3.mp3", "G3": "G3.mp3",
+                "A3": "A3.mp3", "B3": "B3.mp3", "C4": "C4.mp3", "D4": "D4.mp3", "E4": "E4.mp3", "F4": "F4.mp3", "G4": "G4.mp3",
+                "A4": "A4.mp3", "B4": "B4.mp3", "C5": "C5.mp3", "D5": "D5.mp3", "E5": "E5.mp3", "F5": "F5.mp3", "G5": "G5.mp3",
+                "A5": "A5.mp3", "B5": "B5.mp3", "C6": "C6.mp3", "D6": "D6.mp3", "E6": "E6.mp3", "F6": "F6.mp3", "G6": "G6.mp3",
+                "A6": "A6.mp3", "B6": "B6.mp3", "C7": "C7.mp3", "D7": "D7.mp3", "E7": "E7.mp3", "F7": "F7.mp3", "G7": "G7.mp3",
+                "A7": "A7.mp3", "B7": "B7.mp3", "C8": "C8.mp3",
+                "G#1": "Ab1.mp3", "A#0": "Bb0.mp3", "C#1": "Db1.mp3", "D#1": "Eb1.mp3", "F#1": "Gb1.mp3", 
+                "G#2": "Ab2.mp3", "A#1": "Bb1.mp3", "C#2": "Db2.mp3", "D#2": "Eb2.mp3", "F#2": "Gb2.mp3", 
+                "G#3": "Ab3.mp3", "A#2": "Bb2.mp3", "C#3": "Db3.mp3", "D#3": "Eb3.mp3", "F#3": "Gb3.mp3", 
+                "G#4": "Ab4.mp3", "A#3": "Bb3.mp3", "C#4": "Db4.mp3", "D#4": "Eb4.mp3", "F#4": "Gb4.mp3", 
+                "G#5": "Ab5.mp3", "A#4": "Bb4.mp3", "C#5": "Db5.mp3", "D#5": "Eb5.mp3", "F#5": "Gb5.mp3", 
+                "G#6": "Ab6.mp3", "A#5": "Bb5.mp3", "C#6": "Db6.mp3", "D#6": "Eb6.mp3", "F#6": "Gb6.mp3", 
+                "G#7": "Ab7.mp3", "A#6": "Bb6.mp3", "C#7": "Db7.mp3", "D#7": "Eb7.mp3", "F#7": "Gb7.mp3", 
+                                  "A#7": "Bb7.mp3", 
+            },
+            // 关键参数设置
+            release: 1.2,
+            baseUrl: config.baseUrl,
+            onload: () => {
+                statusEl.textContent = `${config.name} 音色就绪。Ref: gleitz.github.io`;
+                inst.connect(reverb);
+                // 这里的 volumeSlider 确保是全局音量滑块的 DOM 元素
+                if (typeof volumeSlider !== 'undefined') {
+                    inst.volume.value = parseFloat(volumeSlider.value) + config.enhance;
+                }
             }
         });
     } else {
+        // 默认合成器
         inst = new Tone.PolySynth(Tone.Synth);
     }
-    // ... 其他音色如 organ, bell 等
 
-    // 将新创建的乐器连接到输出端
-    if (typeof reverb !== 'undefined') {
-        inst.connect(reverb);
-    } else {
-        inst.toDestination();
-    }
+    // 3. 统一连接到效果器并加入池
+    if (typeof reverb !== 'undefined') inst.connect(reverb);
+    else inst.toDestination();
 
     instrumentPool[type] = inst;
     return inst;
@@ -383,7 +474,7 @@ async function getInstrumentInstance(type) {
 instrumentSelect.addEventListener('change', async (e) => {
     const type = e.target.value;
     await Tone.start();
-    
+
     statusEl.textContent = '切换全局音色...';
     await getInstrumentInstance(type); // 确保全局音色已加载到池中
     globalInstrumentType = type;
