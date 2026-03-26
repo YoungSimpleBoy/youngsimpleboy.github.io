@@ -25,12 +25,13 @@
     <canvas id="canvas"></canvas>
     
     <div class="bottom-controls">
+        
         <div class="progress-section">
             <input type="file" id="fileInput" accept=".mid,.midi">
             <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
-                上传 MIDI
+                上传 MIDI 文件
             </button>
-            <span class="select-label">示例</span>
+            <span class="select-label">  或  </span>
             <div class="custom-select-wrapper">
                 <select id="exampleSelect" class="custom-select">
                     <option value="">选择示例...</option>
@@ -53,7 +54,7 @@
                 <span id="volumeValue">-6 dB</span>
             </div>
             <div class="volume-control">
-                <span>速度</span>
+                <span>瀑布流速度</span>
                 <input type="range" id="speedSlider" min="50" max="350" value="200" step="10" class="slider">
                 <span id="speedValue">200</span>
             </div>
@@ -63,6 +64,15 @@
                     <input type="checkbox" id="infoToggle" checked>
                     <span class="checkmark"></span>
                 </label>
+            </div>
+            <div class="volume-control">
+                <span>方向</span>
+                <div class="custom-select-wrapper">
+                    <select id="directionSelect" class="custom-select">
+                        <option value="horizontal">水平 (向左流动)</option>
+                        <option value="vertical">垂直 (向下掉落)</option>
+                    </select>
+                </div>
             </div>
             <div class="volume-control">
                 <span>音色</span>
