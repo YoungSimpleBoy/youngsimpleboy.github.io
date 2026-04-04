@@ -903,6 +903,46 @@ hr {
     border-radius: inherit;
 }
 
+.uma-gif-bubble {
+    position: absolute;
+    right: calc(100% + 14px);
+    bottom: 20px;
+    max-width: min(280px, 42vw);
+    padding: 0.65rem 0.85rem;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    line-height: 1.45;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    opacity: 0;
+    transform: translateX(8px) scale(0.97);
+    transform-origin: right bottom;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    pointer-events: none;
+    white-space: normal;
+    word-break: break-word;
+}
+
+.uma-gif-bubble::after {
+    content: '';
+    position: absolute;
+    right: -7px;
+    bottom: 16px;
+    width: 12px;
+    height: 12px;
+    background: var(--bg-secondary);
+    border-right: 1px solid var(--border-color);
+    border-top: 1px solid var(--border-color);
+    transform: rotate(45deg);
+}
+
+.uma-gif-bubble.show {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+}
+
 /* 移动端适配 */
 @media (max-width: 768px) {
     #uma-gif-container {
@@ -910,6 +950,22 @@ hr {
         max-height: 150px;
         bottom: 10px;
         right: 10px;
+    }
+
+    .uma-gif-bubble {
+        right: 0;
+        bottom: calc(100% + 10px);
+        max-width: min(78vw, 260px);
+        transform-origin: right bottom;
+    }
+
+    .uma-gif-bubble::after {
+        right: 18px;
+        bottom: -7px;
+        border-right: 1px solid var(--border-color);
+        border-top: none;
+        border-bottom: 1px solid var(--border-color);
+        transform: rotate(45deg);
     }
 }
 

@@ -217,6 +217,7 @@ function initDateAndYiJi() {
 // ====================
 function initUmaGif() {
     const img = document.getElementById('uma-gif');
+    const bubble = document.getElementById('uma-gif-bubble');
     if (!img) return;
 
     const gifList = [
@@ -233,13 +234,81 @@ function initUmaGif() {
     let currentIndex = parseInt(localStorage.getItem(STORAGE_KEY)) || 0;
     currentIndex = currentIndex % gifList.length;
 
+    const gifMessages = {
+        'uma_01.gif': '阿给马塞！',
+        'uma_02.gif': '优秀的气动外形可以减少大逃中的空气阻力…',
+        'uma_03.gif': '哈~基~米~',
+        'uma_04.gif': '在去到领奖台之前也要给力哦♪',
+        'uma_05.gif': '事已至此，先吃饭吧。',
+        'uma_06.gif': '目标，无论何时都是第一名！',
+        'uma_07.gif': '训练员！每天过得快乐吗？',
+        'uma_08.gif': '那我呢？',
+        'uma_09.gif': '女孩子的体重是不能说的！',
+        'uma_10.gif': '装逼我让你飞起来！',
+        'uma_11.gif': '来吧！让我们开始传说之路吧！',
+        'uma_12.gif': '只有奔跑、斩杀。直到解渴之日。',
+        'uma_13.gif': '还有谁想听冷笑话？',
+        'uma_14.gif': '唔呼呼呼～马娘们实在是太尊了～♪真想一～直这么看下去呢☆',
+        'uma_15.gif': '好啦好啦，不要着急轻松点。那样的话就会顺利的~',
+        'uma_16.gif': '蹩追啦！',
+        'uma_17.gif': '孩子们，我的头是普通大小！',
+        'uma_18.gif': '诶嘿嘿♪，是Maya亲哟☆',
+        'uma_19.gif': '是的，头像是本人。',
+        'uma_20.gif': '目标确认。开始执行操作“获得三冠”。',
+        'uma_21.gif': '听说你也想拿三冠？',
+        'uma_22.gif': '你很不错啊。是块实验品的好料子。',
+        'uma_23.gif': '“平成三杰”有四位是常识',
+        'uma_24.gif': '东张西望是不行的，只能好好注视着机伶哟♪',
+        'uma_25.gif': '先说好了，早起之类的真的办不到。',
+        'uma_26.gif': '爆进！爆进！',
+        'uma_27.gif': '呼呼，真乖~真乖~♪',
+        'uma_28.gif': '寄了…',
+        'uma_29.gif': '我赌今天不会下雨…',
+        'uma_30.gif': '就算一直输一直输，也不会气馁哟！乌~拉拉~♪',
+        'uma_31.gif': '唔呼呼，占卜结果是！？今天的运势是大吉☆',
+        'uma_32.gif': '这个好歌剧怎么这么坏啊！',
+        'uma_33.gif': '啊，说不定今天能走运…',
+        'uma_34.gif': '曼波~曼波！',
+        'uma_35.gif': '我真的是什么很坏的小马吗?',
+        'uma_36.gif': '哈利ki得一够!',
+        'uma_37.gif': '即使这双脚脆弱不堪，我也要骄傲的奔跑下去…',
+        'uma_38.gif': '你这辈子就是被大姐姐害了!',
+        'uma_39.gif': '呵呵…我一直就在训练员的身边哟。',
+        'uma_40.gif': '有这么一位神通广大的贵妇人…'
+    };
+    let bubbleTimer = null;
+    const BUBBLE_MIN_MS = 1800;
+    const BUBBLE_MAX_MS = 5200;
+    const BUBBLE_BASE_MS = 900;
+    const BUBBLE_PER_CHAR_MS = 120;
+
+    function showBubbleByFile(fileName) {
+        if (!bubble) return;
+        const message = gifMessages[fileName] || '今天也一起加油。';
+        const charCount = [...message].length;
+        const displayMs = Math.min(
+            BUBBLE_MAX_MS,
+            Math.max(BUBBLE_MIN_MS, BUBBLE_BASE_MS + charCount * BUBBLE_PER_CHAR_MS)
+        );
+
+        bubble.textContent = message;
+        bubble.classList.add('show');
+        if (bubbleTimer) clearTimeout(bubbleTimer);
+        bubbleTimer = setTimeout(() => {
+            bubble.classList.remove('show');
+        }, displayMs);
+    }
+
     img.src = '/asset/uma_gif/' + gifList[currentIndex];
+    if (bubble) bubble.classList.remove('show');
 
     // 覆盖旧事件（防止重复绑定）
     img.onclick = () => {
         currentIndex = (currentIndex + 1) % gifList.length;
-        img.src = '/asset/uma_gif/' + gifList[currentIndex];
+        const nextFile = gifList[currentIndex];
+        img.src = '/asset/uma_gif/' + nextFile;
         localStorage.setItem(STORAGE_KEY, currentIndex);
+        showBubbleByFile(nextFile);
     };
 }
 

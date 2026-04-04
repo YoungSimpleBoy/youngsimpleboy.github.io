@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Visualizer Lab</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com" rel="preconnect">
+    <link crossorigin href="https://fonts.gstatic.com" rel="preconnect">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header class="topbar">
+        <div>
+            <h1>Audio Visualizer Lab</h1>
+            <p>Web Audio API 实时频谱与波形可视化</p>
+        </div>
+        <button class="theme-toggle" id="themeToggle" title="切换主题" aria-label="切换主题">
+            <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="5"></circle>
+                <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
+            </svg>
+            <svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            </svg>
+        </button>
+    </header>
+
+    <main class="layout">
+        <section class="panel">
+            <div class="card">
+                <h2>输入与播放</h2>
+                <input id="audioFile" type="file" accept="audio/*" hidden>
+                <div class="row">
+                    <button id="pickFileBtn" type="button">上传音频</button>
+                    <button id="playBtn" type="button" disabled>播放</button>
+                    <button id="stopBtn" type="button" disabled>停止</button>
+                </div>
+                <div class="time-row">
+                    <span id="currentTime">00:00</span>
+                    <span class="time-divider">/</span>
+                    <span id="totalTime">00:00</span>
+                </div>
+                <div class="row compact">
+                    <label class="check-item"><input id="loopToggle" type="checkbox"> 循环播放</label>
+                    <button id="resetParamsBtn" type="button">重置参数</button>
+                </div>
+                <p id="fileName" class="muted">未加载音频文件</p>
+                <audio id="audioEl" controls></audio>
+            </div>
+
+            <div class="card">
+                <h2>分析参数</h2>
+                <label class="field">
+                    <span>FFT Size</span>
+                    <select id="fftSizeSelect">
+                        <option value="512">512</option>
+                        <option value="1024">1024</option>
+                        <option value="2048" selected>2048</option>
+                        <option value="4096">4096</option>
+                    </select>
+                </label>
+                <label class="field">
+                    <span>平滑系数</span>
+                    <input id="smoothingInput" type="range" min="0" max="95" step="1" value="78">
+                    <output id="smoothingValue">0.78</output>
+                </label>
+                <label class="field">
+                    <span>增益</span>
+                    <input id="gainInput" type="range" min="50" max="300" step="10" value="100">
+                    <output id="gainValue">1.00</output>
+                </label>
+                <label class="field">
+                    <span>视觉预设</span>
+                    <select id="presetSelect">
+                        <option value="aurora" selected>Aurora</option>
+                        <option value="pulse">Pulse</option>
+                        <option value="mono">Mono</option>
+                    </select>
+                </label>
+            </div>
+
+            <div class="card">
+                <h2>显示效果</h2>
+                <div class="row compact">
+                    <label class="check-item"><input id="mirrorToggle" type="checkbox" checked> 频谱镜像</label>
+                    <label class="check-item"><input id="peakToggle" type="checkbox" checked> 峰值保持线</label>
+                </div>
+                <label class="field">
+                    <span>频谱样式</span>
+                    <select id="spectrumStyleSelect">
+                        <option value="bars">Bars 柱状</option>
+                        <option value="ribbon">Ribbon 丝带</option>
+                    </select>
+                </label>
+                <div class="row compact">
+                    <label class="check-item"><input id="beatDetectToggle" type="checkbox" checked> 鼓点触发脉冲</label>
+                </div>
+                <div class="row compact">
+                    <label class="check-item"><input id="showSpectrogramToggle" type="checkbox" checked> 底部时频图</label>
+                </div>
+                <label class="field">
+                    <span>拖影强度</span>
+                    <input id="trailInput" type="range" min="0" max="90" step="5" value="35">
+                    <output id="trailValue">0.35</output>
+                </label>
+                <label class="field">
+                    <span>鼓点灵敏度</span>
+                    <input id="beatSensitivityInput" type="range" min="80" max="170" step="5" value="120">
+                    <output id="beatSensitivityValue">1.20</output>
+                </label>
+                <label class="field">
+                    <span>鼓点冷却 (ms)</span>
+                    <input id="beatCooldownInput" type="range" min="80" max="320" step="10" value="140">
+                    <output id="beatCooldownValue">140</output>
+                </label>
+                <label class="field">
+                    <span>脉冲强度</span>
+                    <input id="beatPulseGainInput" type="range" min="50" max="250" step="10" value="120">
+                    <output id="beatPulseGainValue">1.20</output>
+                </label>
+            </div>
+
+            <div class="card">
+                <h2>实时特征</h2>
+                <div class="stats">
+                    <p>RMS: <strong id="rmsValue">0.000</strong></p>
+                    <p>Low: <strong id="lowValue">0.000</strong></p>
+                    <p>Mid: <strong id="midValue">0.000</strong></p>
+                    <p>High: <strong id="highValue">0.000</strong></p>
+                    <p class="beat-row">Beat: <strong id="beatValue">OFF</strong><span id="beatDot" class="beat-dot"></span></p>
+                </div>
+            </div>
+        </section>
+
+        <section class="viewer card">
+            <canvas id="vizCanvas"></canvas>
+            <p class="info">空格暂停/继续，上传后点击播放启动实时可视化</p>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="footer-links">
+            <a href="../../index.html" target="_blank" rel="noopener">个人主页</a>
+            <a href="https://github.com/YoungSimpleBoy" target="_blank" rel="noopener">GitHub</a>
+            <a href="mailto:2404716575@qq.com" target="_blank" rel="noopener">E-mail</a>
+            <a href="https://space.bilibili.com/52652807" target="_blank" rel="noopener">bilibili</a>
+        </div>
+        <p class="copyright">© 2026 YoungSimpleBoy. All rights reserved.</p>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>
