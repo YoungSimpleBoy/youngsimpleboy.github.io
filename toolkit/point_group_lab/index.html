@@ -1,0 +1,178 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Point Group Lab</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com" rel="preconnect">
+    <link crossorigin href="https://fonts.gstatic.com" rel="preconnect">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        (function () {
+            var savedTheme = localStorage.getItem("theme");
+            if (savedTheme === "light") {
+                document.documentElement.classList.add("light");
+            }
+        })();
+    </script>
+</head>
+<body>
+    <header class="topbar">
+        <div>
+            <h1>Point Group Lab</h1>
+            <p>晶体学点群交互可视化（HTML 复刻版）</p>
+        </div>
+        <div class="top-actions">
+            <button class="theme-toggle" id="themeToggle" title="切换主题" aria-label="切换主题">
+                <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="5"></circle>
+                    <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
+                </svg>
+                <svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <main class="layout">
+        <aside class="panel">
+            <section class="card">
+                <h2>初始点</h2>
+                <div class="grid-3">
+                    <label>X
+                        <input id="seed-x" type="number" step="0.1" min="-1.5" max="1.5" value="0.2">
+                    </label>
+                    <label>Y
+                        <input id="seed-y" type="number" step="0.1" min="-1.5" max="1.5" value="0.8">
+                    </label>
+                    <label>Z
+                        <input id="seed-z" type="number" step="0.1" min="-1.5" max="1.5" value="0.5">
+                    </label>
+                </div>
+            </section>
+
+            <section class="card">
+                <h2>旋转 / 反轴生成元</h2>
+                <p class="hint">对应 MATLAB 的 RO 思路。国际符号中 n 为 n 重轴，<span class="hm-overbar">n</span> 为反轴（如 <span class="hm-overbar">3</span>、<span class="hm-overbar">4</span>、<span class="hm-overbar">6</span>）。</p>
+                <div class="op-row">
+                    <span>Z 轴</span>
+                    <input id="z-order" type="number" min="0" max="12" step="1" value="4">
+                    <select id="z-mode">
+                        <option value="rot">n</option>
+                        <option value="roto">n-bar</option>
+                    </select>
+                </div>
+                <div class="op-row">
+                    <span>Y 轴</span>
+                    <input id="y-order" type="number" min="0" max="12" step="1" value="0">
+                    <select id="y-mode">
+                        <option value="rot">n</option>
+                        <option value="roto">n-bar</option>
+                    </select>
+                </div>
+                <div class="op-row">
+                    <span>X 轴</span>
+                    <input id="x-order" type="number" min="0" max="12" step="1" value="0">
+                    <select id="x-mode">
+                        <option value="rot">n</option>
+                        <option value="roto">n-bar</option>
+                    </select>
+                </div>
+                <div class="op-row">
+                    <span>[111] 轴</span>
+                    <input id="d-order" type="number" min="0" max="12" step="1" value="3">
+                    <select id="d-mode">
+                        <option value="rot">n</option>
+                        <option value="roto" selected>n-bar</option>
+                    </select>
+                </div>
+            </section>
+
+            <section class="card">
+                <h2>镜面 / 反演</h2>
+                <div class="checks">
+                    <label><input id="m-z" type="checkbox"> m(001)</label>
+                    <label><input id="m-y" type="checkbox"> m(010)</label>
+                    <label><input id="m-x" type="checkbox"> m(100)</label>
+                    <label><input id="inv" type="checkbox"> <span class="hm-overbar">1</span>（中心反演）</label>
+                </div>
+            </section>
+
+            <section class="card">
+                <h2>预设组合</h2>
+                <div class="preset-row">
+                    <select id="preset">
+                        <option value="custom">Custom</option>
+                        <option value="C1">C1</option>
+                        <option value="Ci">Ci</option>
+                        <option value="Cs">Cs</option>
+                        <option value="C2">C2</option>
+                        <option value="C3">C3</option>
+                        <option value="C4">C4</option>
+                        <option value="C6">C6</option>
+                        <option value="C2v">C2v</option>
+                        <option value="D2h">D2h</option>
+                        <option value="Th_like">m3-bar (T_h)</option>
+                    </select>
+                    <button id="apply-preset" type="button">应用预设</button>
+                </div>
+                <div class="btn-row">
+                    <button id="random-seed" type="button">随机点</button>
+                    <button id="reset-view" type="button">重置视角</button>
+                    <button id="recompute" type="button">重新计算</button>
+                </div>
+            </section>
+
+            <section class="card">
+                <h2>显示选项</h2>
+                <div class="checks">
+                    <label><input id="show-axes" type="checkbox" checked> 显示坐标轴</label>
+                    <label><input id="show-symmetry" type="checkbox" checked> 显示对称元素</label>
+                    <label><input id="show-hull" type="checkbox" checked> 显示凸包表面</label>
+                    <label class="range-control">
+                        <span>凸包表面不透明度</span>
+                        <div class="range-line">
+                            <input id="hull-opacity" type="range" min="0" max="100" step="1" value="100">
+                            <output id="hull-opacity-value" for="hull-opacity">100%</output>
+                        </div>
+                    </label>
+                    <label><input id="strict-style" type="checkbox" checked> 标准图示模式</label>
+                    <label><input id="show-vectors" type="checkbox"> 显示原点连线</label>
+                    <label><input id="auto-spin" type="checkbox"> 自动旋转视角</label>
+                </div>
+            </section>
+
+            <section class="card stats">
+                <h2>统计</h2>
+                <p>生成元数量：<strong id="gen-count">0</strong></p>
+                <p>群操作数量：<strong id="op-count">1</strong></p>
+                <p>轨道点数量：<strong id="pt-count">1</strong></p>
+                <p id="warn" class="warn"></p>
+                <pre id="summary"></pre>
+            </section>
+        </aside>
+
+        <section class="viewer-card" id="viewerCard">
+            <button class="viewer-fs-btn" id="viewerFsBtn" type="button" title="全屏显示可视化" aria-label="全屏显示可视化">⛶</button>
+            <canvas id="scene"></canvas>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="footer-links">
+            <a href="../../index.html" target="_blank" rel="noopener">个人主页</a>
+            <a href="https://github.com/YoungSimpleBoy" target="_blank" rel="noopener">GitHub</a>
+            <a href="mailto:2404716575@qq.com" target="_blank" rel="noopener">E-mail</a>
+            <a href="https://space.bilibili.com/52652807" target="_blank" rel="noopener">bilibili</a>
+        </div>
+        <p class="copyright">© 2026 YoungSimpleBoy. All rights reserved.</p>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>
+
+
+
