@@ -1,9 +1,167 @@
+// MIDI标准乐器号（Program Number）到 GM 乐器名映射（0-127）
+const GM_PROGRAM_NAMES = [
+    "Acoustic Grand Piano", "Bright Acoustic Piano", "Electric Grand Piano", "Honky-tonk Piano", "Electric Piano 1", "Electric Piano 2", "Harpsichord", "Clavinet",
+    "Celesta", "Glockenspiel", "Music Box", "Vibraphone", "Marimba", "Xylophone", "Tubular Bells", "Dulcimer",
+    "Drawbar Organ", "Percussive Organ", "Rock Organ", "Church Organ", "Reed Organ", "Accordion", "Harmonica", "Tango Accordion",
+    "Acoustic Guitar (nylon)", "Acoustic Guitar (steel)", "Electric Guitar (jazz)", "Electric Guitar (clean)", "Electric Guitar (muted)", "Overdriven Guitar", "Distortion Guitar", "Guitar Harmonics",
+    "Acoustic Bass", "Electric Bass (finger)", "Electric Bass (pick)", "Fretless Bass", "Slap Bass 1", "Slap Bass 2", "Synth Bass 1", "Synth Bass 2",
+    "Violin", "Viola", "Cello", "Contrabass", "Tremolo Strings", "Pizzicato Strings", "Orchestral Harp", "Timpani",
+    "String Ensemble 1", "String Ensemble 2", "Synth Strings 1", "Synth Strings 2", "Choir Aahs", "Voice Oohs", "Synth Voice", "Orchestra Hit",
+    "Trumpet", "Trombone", "Tuba", "Muted Trumpet", "French Horn", "Brass Section", "Synth Brass 1", "Synth Brass 2",
+    "Soprano Sax", "Alto Sax", "Tenor Sax", "Baritone Sax", "Oboe", "English Horn", "Bassoon", "Clarinet",
+    "Piccolo", "Flute", "Recorder", "Pan Flute", "Blown Bottle", "Shakuhachi", "Whistle", "Ocarina",
+    "Lead 1 (square)", "Lead 2 (sawtooth)", "Lead 3 (calliope)", "Lead 4 (chiff)", "Lead 5 (charang)", "Lead 6 (voice)", "Lead 7 (fifths)", "Lead 8 (bass+lead)",
+    "Pad 1 (new age)", "Pad 2 (warm)", "Pad 3 (polysynth)", "Pad 4 (choir)", "Pad 5 (bowed)", "Pad 6 (metallic)", "Pad 7 (halo)", "Pad 8 (sweep)",
+    "FX 1 (rain)", "FX 2 (soundtrack)", "FX 3 (crystal)", "FX 4 (atmosphere)", "FX 5 (brightness)", "FX 6 (goblins)", "FX 7 (echoes)", "FX 8 (sci-fi)",
+    "Sitar", "Banjo", "Shamisen", "Koto", "Kalimba", "Bag pipe", "Fiddle", "Shanai",
+    "Tinkle Bell", "Agogo", "Steel Drums", "Woodblock", "Taiko Drum", "Melodic Tom", "Synth Drum", "Reverse Cymbal",
+    "Guitar Fret Noise", "Breath Noise", "Seashore", "Bird Tweet", "Telephone Ring", "Helicopter", "Applause", "Gunshot"
+];
+
+// GM Program 对应的 soundfont 目录名（FluidR3_GM）
+const GM_PROGRAM_IDS = [
+    'acoustic_grand_piano', 'bright_acoustic_piano', 'electric_grand_piano', 'honkytonk_piano', 'electric_piano_1', 'electric_piano_2', 'harpsichord', 'clavinet',
+    'celesta', 'glockenspiel', 'music_box', 'vibraphone', 'marimba', 'xylophone', 'tubular_bells', 'dulcimer',
+    'drawbar_organ', 'percussive_organ', 'rock_organ', 'church_organ', 'reed_organ', 'accordion', 'harmonica', 'tango_accordion',
+    'acoustic_guitar_nylon', 'acoustic_guitar_steel', 'electric_guitar_jazz', 'electric_guitar_clean', 'electric_guitar_muted', 'overdriven_guitar', 'distortion_guitar', 'guitar_harmonics',
+    'acoustic_bass', 'electric_bass_finger', 'electric_bass_pick', 'fretless_bass', 'slap_bass_1', 'slap_bass_2', 'synth_bass_1', 'synth_bass_2',
+    'violin', 'viola', 'cello', 'contrabass', 'tremolo_strings', 'pizzicato_strings', 'orchestral_harp', 'timpani',
+    'string_ensemble_1', 'string_ensemble_2', 'synth_strings_1', 'synth_strings_2', 'choir_aahs', 'voice_oohs', 'synth_voice', 'orchestra_hit',
+    'trumpet', 'trombone', 'tuba', 'muted_trumpet', 'french_horn', 'brass_section', 'synth_brass_1', 'synth_brass_2',
+    'soprano_sax', 'alto_sax', 'tenor_sax', 'baritone_sax', 'oboe', 'english_horn', 'bassoon', 'clarinet',
+    'piccolo', 'flute', 'recorder', 'pan_flute', 'blown_bottle', 'shakuhachi', 'whistle', 'ocarina',
+    'lead_1_square', 'lead_2_sawtooth', 'lead_3_calliope', 'lead_4_chiff', 'lead_5_charang', 'lead_6_voice', 'lead_7_fifths', 'lead_8_bass_lead',
+    'pad_1_new_age', 'pad_2_warm', 'pad_3_polysynth', 'pad_4_choir', 'pad_5_bowed', 'pad_6_metallic', 'pad_7_halo', 'pad_8_sweep',
+    'fx_1_rain', 'fx_2_soundtrack', 'fx_3_crystal', 'fx_4_atmosphere', 'fx_5_brightness', 'fx_6_goblins', 'fx_7_echoes', 'fx_8_scifi',
+    'sitar', 'banjo', 'shamisen', 'koto', 'kalimba', 'bagpipe', 'fiddle', 'shanai',
+    'tinkle_bell', 'agogo', 'steel_drums', 'woodblock', 'taiko_drum', 'melodic_tom', 'synth_drum', 'reverse_cymbal',
+    'guitar_fret_noise', 'breath_noise', 'seashore', 'bird_tweet', 'telephone_ring', 'helicopter', 'applause', 'gunshot'
+];
+
+const GM_SOUNDFONT_BASE_URL = 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/';
+const GM_SPARSE_SAMPLE_URLS = {
+    'A0': 'A0.mp3', 'C1': 'C1.mp3', 'D#1': 'Eb1.mp3', 'F#1': 'Gb1.mp3',
+    'A1': 'A1.mp3', 'C2': 'C2.mp3', 'D#2': 'Eb2.mp3', 'F#2': 'Gb2.mp3',
+    'A2': 'A2.mp3', 'C3': 'C3.mp3', 'D#3': 'Eb3.mp3', 'F#3': 'Gb3.mp3',
+    'A3': 'A3.mp3', 'C4': 'C4.mp3', 'D#4': 'Eb4.mp3', 'F#4': 'Gb4.mp3',
+    'A4': 'A4.mp3', 'C5': 'C5.mp3', 'D#5': 'Eb5.mp3', 'F#5': 'Gb5.mp3',
+    'A5': 'A5.mp3', 'C6': 'C6.mp3', 'D#6': 'Eb6.mp3', 'F#6': 'Gb6.mp3',
+    'A6': 'A6.mp3', 'C7': 'C7.mp3', 'D#7': 'Eb7.mp3', 'F#7': 'Gb7.mp3',
+    'A7': 'A7.mp3', 'C8': 'C8.mp3'
+};
+
+function normalizeProgramNumber(program) {
+    if (typeof program !== 'number' || Number.isNaN(program)) return null;
+
+    if (program >= 0 && program <= 127) {
+        return program;
+    }
+
+    // 兼容极少数异常值（128 当作最后一个 Program）
+    if (program === 128) {
+        return 127;
+    }
+
+    return null;
+}
+
+function getTrackProgramInfo(track, midi) {
+    let program = null;
+    let noteChannel = null;
+    let isPercussion = false;
+
+    if (track.notes && track.notes.length > 0 && typeof track.notes[0].channel === 'number') {
+        noteChannel = track.notes[0].channel;
+        if (noteChannel === 9) {
+            isPercussion = true;
+        }
+    }
+
+    if (track.instrument && typeof track.instrument === 'object') {
+        if (track.instrument.percussion) {
+            isPercussion = true;
+        }
+        const instNum = normalizeProgramNumber(track.instrument.number);
+        if (instNum !== null) {
+            program = instNum;
+        }
+    }
+
+    if (program === null && typeof track.programNumber === 'number') {
+        program = normalizeProgramNumber(track.programNumber);
+    }
+
+    if (program === null && typeof track.instrument === 'number') {
+        program = normalizeProgramNumber(track.instrument);
+    }
+
+    if (program === null && Array.isArray(track.events)) {
+        for (const ev of track.events) {
+            if (ev.type === 'programChange' && typeof ev.programNumber === 'number') {
+                program = normalizeProgramNumber(ev.programNumber);
+                if (typeof ev.channel === 'number' && ev.channel === 9) {
+                    isPercussion = true;
+                }
+                break;
+            }
+        }
+    }
+
+    if (program === null && typeof noteChannel === 'number') {
+        outer: for (const t of midi.tracks) {
+            if (!Array.isArray(t.events)) continue;
+            for (const ev of t.events) {
+                if (ev.type === 'programChange' && ev.channel === noteChannel && typeof ev.programNumber === 'number') {
+                    program = normalizeProgramNumber(ev.programNumber);
+                    break outer;
+                }
+            }
+        }
+    }
+
+    return {
+        program,
+        isPercussion
+    };
+}
+
+function getInstrumentNameFromTrack(track, midi) {
+    const trackProgramInfo = getTrackProgramInfo(track, midi);
+
+    if (track.instrument && typeof track.instrument === 'object') {
+        if (trackProgramInfo.isPercussion) {
+            return 'Standard Drum Kit';
+        }
+        if (typeof track.instrument.name === 'string' && track.instrument.name.trim()) {
+            return track.instrument.name.trim();
+        }
+        const instNum = trackProgramInfo.program;
+        if (instNum !== null) {
+            return GM_PROGRAM_NAMES[instNum] || '';
+        }
+    }
+
+    if (trackProgramInfo.isPercussion) {
+        return 'Standard Drum Kit';
+    }
+
+    if (trackProgramInfo.program !== null) {
+        return GM_PROGRAM_NAMES[trackProgramInfo.program] || '';
+    }
+
+    return '';
+}
 // 作者: YoungSimpleBoy
 // 日期: 2026-03-22
 // 功能: 一个MIDI播放与可视化组件
 // ==================== 配置 ====================
-let WIDTH = window.innerWidth > 1440 ? 1440 : (window.innerWidth * 0.95);
-let HEIGHT = window.innerWidth <= 768 ? WIDTH * 1.0 : 720;
+function getDefaultCanvasSize() {
+    const width = window.innerWidth > 1440 ? 1440 : (window.innerWidth * 0.95);
+    const height = window.innerWidth <= 768 ? width * 1.0 : 720;
+    return { width, height };
+}
+
+let { width: WIDTH, height: HEIGHT } = getDefaultCanvasSize();
 const DEFAULT_SPEED = 200;       // 默认速度：像素/秒
 let SPEED = DEFAULT_SPEED;       // 速度：像素/秒（可调节）
 const THICKNESS = 8;   // 音符厚度
@@ -14,10 +172,15 @@ const FADE_IN_TIME = FADE_IN_DIST / SPEED; // 转换为时间（秒）
 
 // ==================== DOM ====================
 const canvas = document.getElementById('canvas');
+const canvasWrapper = document.getElementById('canvasWrapper');
+const canvasFsBtn = document.getElementById('canvasFsBtn');
 const ctx = canvas.getContext('2d');
 const fileInput = document.getElementById('fileInput');
 const playBtn = document.getElementById('playBtn');
+const loopBtn = document.getElementById('loopBtn');
 const exampleSelect = document.getElementById('exampleSelect');
+const playbackRateSlider = document.getElementById('playbackRateSlider');
+const playbackRateValue = document.getElementById('playbackRateValue');
 const statusEl = document.getElementById('status');
 const themeToggle = document.getElementById('themeToggle');
 
@@ -60,16 +223,89 @@ if (themeToggle) {
     themeToggle.addEventListener('click', toggleTheme);
 }
 
+function resizeCanvas(width, height) {
+    WIDTH = Math.max(320, Math.round(width));
+    HEIGHT = Math.max(240, Math.round(height));
+    canvas.width = WIDTH;
+    canvas.height = HEIGHT;
+
+    if (!isPlaying) {
+        drawFrame(currentTime);
+    }
+}
+
+function updateCanvasSizeForCurrentMode() {
+    if (document.fullscreenElement === canvasWrapper && canvasWrapper) {
+        const rect = canvasWrapper.getBoundingClientRect();
+        resizeCanvas(rect.width, rect.height);
+        return;
+    }
+
+    const defaultSize = getDefaultCanvasSize();
+    resizeCanvas(defaultSize.width, defaultSize.height);
+}
+
+async function toggleCanvasFullscreen() {
+    if (!canvasWrapper) return;
+
+    try {
+        if (document.fullscreenElement === canvasWrapper) {
+            await document.exitFullscreen();
+        } else {
+            await canvasWrapper.requestFullscreen();
+        }
+    } catch (err) {
+        statusEl.textContent = `全屏切换失败: ${err.message}`;
+    }
+}
+
+if (canvasFsBtn) {
+    canvasFsBtn.addEventListener('click', toggleCanvasFullscreen);
+}
+
+document.addEventListener('fullscreenchange', () => {
+    const isFullscreen = document.fullscreenElement === canvasWrapper;
+    if (canvasWrapper) {
+        canvasWrapper.classList.toggle('fullscreen', isFullscreen);
+    }
+    if (canvasFsBtn) {
+        canvasFsBtn.textContent = isFullscreen ? '×' : '⛶';
+    }
+    updateCanvasSizeForCurrentMode();
+});
+
+window.addEventListener('resize', () => {
+    updateCanvasSizeForCurrentMode();
+});
+
 // ==================== 瀑布流方向控制 ====================
 let flowDirection = 'horizontal'; // 默认水平
 
-const directionSelect = document.getElementById('directionSelect');
-if (directionSelect) {
-    directionSelect.addEventListener('change', (e) => {
-        flowDirection = e.target.value;
-        if (!isPlaying && typeof currentTime !== 'undefined') {
-            drawFrame(currentTime); // 切换后立即重绘一帧预览
-        }
+const directionButtons = document.querySelectorAll('.direction-btn');
+
+function setFlowDirection(direction) {
+    flowDirection = direction;
+    directionButtons.forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.direction === direction);
+    });
+    if (!isPlaying && typeof currentTime !== 'undefined') {
+        drawFrame(currentTime);
+    }
+}
+
+if (directionButtons.length > 0) {
+    directionButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const nextDirection = btn.dataset.direction;
+            if (nextDirection) {
+                setFlowDirection(nextDirection);
+            }
+        });
+    });
+
+    // 初始化按钮激活态，避免在状态变量初始化前调用 setFlowDirection
+    directionButtons.forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.direction === flowDirection);
     });
 }
 
@@ -88,6 +324,7 @@ let isPlaying = false;
 let currentTime = 0;
 let totalDuration = 0;
 let isDraggingProgress = false;
+let isLoopEnabled = false;
 
 // ==================== 音轨控制 ====================
 const trackHues = [200, 280, 120, 30, 320, 60]; // 音轨颜色
@@ -170,8 +407,64 @@ function updateMidiInfo() {
     `;
 }
 
+function getTrackAutoLabel(track) {
+    if (track.isPercussion) {
+        return '自动（MIDI）: Standard Drum Kit';
+    }
+    if (typeof track.gmProgram === 'number' && GM_PROGRAM_NAMES[track.gmProgram]) {
+        return `自动（MIDI）: GM ${track.gmProgram + 1} ${GM_PROGRAM_NAMES[track.gmProgram]}`;
+    }
+    return '自动（MIDI）: 默认音色';
+}
+
+function buildTrackInstrumentOptions(track) {
+    const sampleOptions = [
+        { value: 'piano', label: '钢琴' },
+        { value: 'violin', label: '小提琴' },
+        { value: 'viola', label: '中提琴' },
+        { value: 'cello', label: '大提琴' },
+        { value: 'piccolo', label: '短笛' },
+        { value: 'flute', label: '长笛' },
+        { value: 'acoustic_guitar', label: '吉他' },
+        { value: 'music_box', label: '八音盒' },
+        { value: 'shamisen', label: '三味线' },
+        { value: 'voice', label: '人声' }
+    ];
+
+    const synthOptions = [
+        { value: 'default', label: '正弦合成器' },
+        { value: 'fm', label: 'FM 电钢琴' },
+        { value: 'am', label: 'AM 复古' },
+        { value: 'fat', label: '胖锯齿波' }
+    ];
+
+    const autoHtml = `<option value="midi_auto">${getTrackAutoLabel(track)}</option>`;
+    const sampleHtml = sampleOptions.map(opt => `<option value="${opt.value}">${opt.label}</option>`).join('');
+    const synthHtml = synthOptions.map(opt => `<option value="${opt.value}">${opt.label}</option>`).join('');
+
+    let gmHtml = '';
+    if (isGmLibraryExpanded) {
+        const gmItems = GM_PROGRAM_NAMES.map((name, idx) => {
+            return `<option value="gm:${idx}">GM ${idx + 1}: ${name}</option>`;
+        }).join('');
+        gmHtml = `<optgroup label="GM 标准音色">${gmItems}</optgroup>`;
+    } else if (typeof track.instrument === 'string' && track.instrument.startsWith('gm:')) {
+        const gmIndex = parseInt(track.instrument.slice(3), 10);
+        if (!Number.isNaN(gmIndex) && gmIndex >= 0 && gmIndex < GM_PROGRAM_NAMES.length) {
+            gmHtml = `<optgroup label="GM 标准音色（已折叠）"><option value="gm:${gmIndex}">当前: GM ${gmIndex + 1}: ${GM_PROGRAM_NAMES[gmIndex]}</option></optgroup>`;
+        }
+    }
+
+    return `${autoHtml}<optgroup label="采样音色（需加载）">${sampleHtml}</optgroup><optgroup label="合成器音色">${synthHtml}</optgroup>${gmHtml}`;
+}
+
 function initTrackPanel() {
+    const trackPanel = document.getElementById('trackPanel');
     const trackList = document.getElementById('trackList');
+    const oldToolbar = trackPanel.querySelector('.track-instrument-toolbar');
+    if (oldToolbar) {
+        oldToolbar.remove();
+    }
 
     if (trackInfo.length === 0) {
         trackList.innerHTML = '<p class="track-empty">加载 MIDI 文件后显示音轨信息</p>';
@@ -179,6 +472,19 @@ function initTrackPanel() {
     }
 
     trackList.innerHTML = '';
+
+    const toolbarEl = document.createElement('div');
+    toolbarEl.className = 'track-instrument-toolbar';
+    toolbarEl.innerHTML = `
+        <button type="button" class="gm-library-toggle-btn">${isGmLibraryExpanded ? '收起 GM 音色库' : '展开 GM 音色库'}</button>
+        <span class="gm-library-tip">采样/合成器已分类，GM 列表可折叠</span>
+    `;
+    const gmToggleBtn = toolbarEl.querySelector('.gm-library-toggle-btn');
+    gmToggleBtn.addEventListener('click', () => {
+        isGmLibraryExpanded = !isGmLibraryExpanded;
+        initTrackPanel();
+    });
+    trackPanel.insertBefore(toolbarEl, trackList);
 
     trackInfo.forEach((track, index) => {
         const trackEl = document.createElement('div');
@@ -189,26 +495,13 @@ function initTrackPanel() {
                 <span class="track-checkbox" style="--track-hue: ${track.hue}"></span>
             </label>
             <span class="track-name" style="--track-hue: ${track.hue}">${track.name}</span>
+            <span class="track-instrument-name" style="margin-left:4px;color:#888;font-size:13px;">${track.instrumentName ? '（' + track.instrumentName + '）' : ''}</span>
             <span class="track-sep">-</span>
             <span class="track-notes">${track.noteCount}个</span>
             <span class="track-sep">-</span>
             <span class="track-range">${track.noteRange}</span>
             <select class="track-instrument-select" data-track="${index}">
-                <option value="inherit">跟随全局</option>
-                <option value="default">正弦合成器</option>
-                <option value="piano">钢琴</option>
-                <option value="violin">小提琴</option>
-                <option value="viola">中提琴</option>
-                <option value="cello">大提琴</option>
-                <option value="piccolo">短笛</option>
-                <option value="flute">长笛</option>
-                <option value="acoustic_guitar">吉他</option>
-                <option value="music_box">八音盒</option>
-                <option value="shamisen">三味线</option>
-                <option value="voice">人声</option>
-                <option value="fm">FM 电钢琴</option>
-                <option value="am">AM 复古</option>
-                <option value="fat">胖锯齿波</option>
+                ${buildTrackInstrumentOptions(track)}
             </select>
             <span class="track-sep">-</span>
             <input type="range" class="track-volume-slider" data-track="${index}" 
@@ -222,10 +515,11 @@ function initTrackPanel() {
             const trackIndex = parseInt(e.target.dataset.track);
             const selectedType = e.target.value;
             trackInfo[trackIndex].instrument = selectedType;
-            // 如果选了独立音色，提前加载它
-            if (selectedType !== 'inherit') {
+
+            const resolvedType = getTrackResolvedInstrumentType(trackInfo[trackIndex]);
+            if (resolvedType) {
                 statusEl.textContent = `加载音轨音色中...`;
-                await getInstrumentInstance(selectedType);
+                await getInstrumentInstance(resolvedType);
                 statusEl.textContent = `音轨 ${trackInfo[trackIndex].name} 音色就绪`;
             }
         });
@@ -263,20 +557,60 @@ function extractTrackInfo(midi) {
 
     midi.tracks.forEach((track, idx) => {
         if (track.notes.length > 0) {
-            // 获取音轨名称（只使用 name 字段，避免 [object Object]）
-            let name = track.name || '';
-            // 确保 name 是字符串
-            if (typeof name !== 'string') {
-                name = String(name || '');
+            // 获取音轨名称，优先解码二进制，保留中文
+            let name = '';
+            if (track.name) {
+                // 多编码尝试，优先显示含中文的最长解码结果
+                let candidates = [];
+                let bytes = null;
+                if (typeof track.name === 'string') {
+                    candidates.push(track.name);
+                    let arr = [];
+                    for (let i = 0; i < track.name.length; i++) {
+                        arr.push(track.name.charCodeAt(i) & 0xFF);
+                    }
+                    bytes = new Uint8Array(arr);
+                } else if (track.name instanceof Uint8Array) {
+                    bytes = track.name;
+                } else if (track.name instanceof ArrayBuffer) {
+                    bytes = new Uint8Array(track.name);
+                } else if (Array.isArray(track.name)) {
+                    bytes = new Uint8Array(track.name);
+                }
+                if (bytes) {
+                    try {
+                        const decoder = new TextDecoder('utf-8');
+                        candidates.push(decoder.decode(bytes));
+                    } catch {}
+                    try {
+                        candidates.push(window.Encoding.convert(bytes, {to:'UNICODE',type:'string'}));
+                    } catch {}
+                    try {
+                        candidates.push(window.Encoding.convert(bytes, {to:'UNICODE',type:'string',from:'BIG5'}));
+                    } catch {}
+                }
+                let best = '';
+                let maxLen = 0;
+                for (const s of candidates) {
+                    if (!s) continue;
+                    let cleaned = s.replace(/[\x00\u0000\0]/g, '').trim();
+                    if (/[\u4e00-\u9fa5]/.test(cleaned) && cleaned.length > maxLen) {
+                        best = cleaned;
+                        maxLen = cleaned.length;
+                    } else if (!best && cleaned.length > maxLen) {
+                        best = cleaned;
+                        maxLen = cleaned.length;
+                    }
+                }
+                name = best;
             }
-            // 清理名称（有些MIDI会附加设备信息）
-            if (name.includes('\x00')) {
-                name = name.split('\x00')[0];
-            }
-            if (!name || name.trim() === '') {
+            if (!name || name === '') {
                 name = `音轨 ${trackIndex + 1}`;
             }
-            // 如果名称太长，截断显示
+            const trackProgramInfo = getTrackProgramInfo(track, midi);
+            // 稳健提取乐器名：优先 @tonejs/midi 的 instrument.name，其次 program 映射
+            const instrumentName = getInstrumentNameFromTrack(track, midi);
+            // 不再拼接乐器名到name，乐器名单独存储
             if (name.length > 20) {
                 name = name.substring(0, 17) + '...';
             }
@@ -290,11 +624,14 @@ function extractTrackInfo(midi) {
 
             trackInfo.push({
                 name: name,
+                instrumentName: instrumentName || '',
                 noteCount: track.notes.length,
                 noteRange: noteRange, // 占位
                 enabled: true,
                 volume: 1.0,
-                instrument: 'inherit', // 默认继承全局
+                instrument: 'midi_auto', // 默认自动按 MIDI Program 分配
+                gmProgram: trackProgramInfo.program,
+                isPercussion: trackProgramInfo.isPercussion,
                 hue: trackHues[trackIndex % trackHues.length]
             });
             trackIndex++;
@@ -375,24 +712,93 @@ const SAMPLER_CONFIGS = {
     }
 };
 // 混音与音频连接
+const masterVolume = new Tone.Volume(-6).toDestination();
 const reverb = new Tone.Reverb({
     decay: 2,
     wet: 0.2
-}).toDestination();
+}).connect(masterVolume);
 let currentInstrument = new Tone.PolySynth(Tone.Synth).connect(reverb);
-let globalInstrumentType = 'default'; // 记录当前全局选中的类型
+let playbackRate = 1;
+let isGmLibraryExpanded = false;
 
 // 乐器池，缓存已创建的乐器实例
 const instrumentPool = {
     'default': currentInstrument
 };
+
+function getTrackResolvedInstrumentType(track) {
+    if (!track) return 'default';
+
+    if (track.instrument === 'midi_auto') {
+        if (track.isPercussion) {
+            return 'gm_drum';
+        }
+        if (typeof track.gmProgram === 'number' && track.gmProgram >= 0 && track.gmProgram < GM_PROGRAM_IDS.length) {
+            return `gm:${track.gmProgram}`;
+        }
+        return 'default';
+    }
+
+    return track.instrument || 'default';
+}
+
+async function preloadAutoTrackInstruments() {
+    const typesToLoad = new Set();
+
+    trackInfo.forEach(track => {
+        if (track.instrument === 'midi_auto') {
+            const resolvedType = getTrackResolvedInstrumentType(track);
+            if (resolvedType && resolvedType !== 'default') {
+                typesToLoad.add(resolvedType);
+            }
+        }
+    });
+
+    const loadList = Array.from(typesToLoad);
+    if (loadList.length === 0) {
+        return;
+    }
+
+    for (let i = 0; i < loadList.length; i++) {
+        statusEl.textContent = `正在加载 MIDI 音库 ${i + 1}/${loadList.length}...`;
+        await getInstrumentInstance(loadList[i]);
+    }
+}
+
 // 统一乐器创建逻辑
 async function getInstrumentInstance(type) {
     // 1. 检查缓存池
     if (instrumentPool[type]) return instrumentPool[type];
     let inst;
     // 2. 检查是否在我们的采样配置集合中
-    if (type === 'fm') {
+    if (type === 'gm_drum') {
+        inst = new Tone.PolySynth(Tone.MembraneSynth, {
+            envelope: {
+                attack: 0.001,
+                decay: 0.2,
+                sustain: 0,
+                release: 0.15
+            }
+        });
+    } else if (type.startsWith('gm:')) {
+        const program = parseInt(type.slice(3), 10);
+        const gmId = GM_PROGRAM_IDS[program];
+        if (!gmId) {
+            inst = new Tone.PolySynth(Tone.Synth);
+        } else {
+            const gmName = GM_PROGRAM_NAMES[program] || gmId;
+            statusEl.textContent = `正在加载 GM 音色: ${gmName}...`;
+            inst = new Tone.Sampler({
+                urls: GM_SPARSE_SAMPLE_URLS,
+                release: 1.1,
+                baseUrl: `${GM_SOUNDFONT_BASE_URL}${gmId}-mp3/`,
+                onload: () => {
+                    statusEl.textContent = `GM 音色已就绪: ${gmName}`;
+                    inst.volume.value = 6;
+                }
+            });
+        }
+    } else if (type === 'fm') {
         inst = new Tone.PolySynth(Tone.FMSynth);
     } else if (type === 'am') {
         inst = new Tone.PolySynth(Tone.AMSynth);
@@ -421,7 +827,7 @@ async function getInstrumentInstance(type) {
             onload: () => {
                 statusEl.textContent = '钢琴音色就绪 (Salamander 三角钢琴，雅马哈 C5)。Ref: tonejs.github.io';
                 inst.connect(reverb); // 必须连接到混响
-                inst.volume.value = parseFloat(volumeSlider.value) + 3;
+                inst.volume.value = 3;
             }
         });
     } else if (type in SAMPLER_CONFIGS) {
@@ -452,10 +858,7 @@ async function getInstrumentInstance(type) {
             onload: () => {
                 statusEl.textContent = `${config.name} 音色就绪。Ref: gleitz.github.io`;
                 inst.connect(reverb);
-                // 这里的 volumeSlider 确保是全局音量滑块的 DOM 元素
-                if (typeof volumeSlider !== 'undefined') {
-                    inst.volume.value = parseFloat(volumeSlider.value) + config.enhance;
-                }
+                inst.volume.value = config.enhance;
             }
         });
     } else {
@@ -465,21 +868,63 @@ async function getInstrumentInstance(type) {
 
     // 3. 统一连接到效果器并加入池
     if (typeof reverb !== 'undefined') inst.connect(reverb);
-    else inst.toDestination();
+    else inst.connect(masterVolume);
 
     instrumentPool[type] = inst;
+
+    if (typeof inst.loaded === 'boolean' && inst.loaded === false) {
+        try {
+            await Tone.loaded();
+        } catch (err) {
+            console.warn('音色采样加载失败，回退默认合成器:', type, err);
+            if (type.startsWith('gm:')) {
+                instrumentPool[type] = instrumentPool['default'];
+                return instrumentPool[type];
+            }
+        }
+    }
+
     return inst;
 }
 
-instrumentSelect.addEventListener('change', async (e) => {
-    const type = e.target.value;
-    await Tone.start();
+function applyPlaybackRate() {
+    if (playbackRateValue) {
+        const rateText = Number.isInteger(playbackRate) ? playbackRate.toFixed(1) : playbackRate.toString();
+        playbackRateValue.textContent = `×${rateText}`;
+    }
 
-    statusEl.textContent = '切换全局音色...';
-    await getInstrumentInstance(type); // 确保全局音色已加载到池中
-    globalInstrumentType = type;
-    statusEl.textContent = '全局音色已更新';
-});
+    // 倍速变更后，若正在播放则从当前歌曲位置重建调度
+    if (isPlaying && notes.length > 0) {
+        scheduleTransportFrom(currentTime);
+    }
+}
+
+if (playbackRateSlider) {
+    const initialRate = parseFloat(playbackRateSlider.value);
+    playbackRate = Number.isFinite(initialRate) && initialRate > 0 ? initialRate : 1;
+
+    playbackRateSlider.addEventListener('input', (e) => {
+        const rate = parseFloat(e.target.value);
+        playbackRate = Number.isFinite(rate) && rate > 0 ? rate : 1;
+        applyPlaybackRate();
+    });
+
+    playbackRateSlider.addEventListener('change', () => {
+        statusEl.textContent = `播放速度已设置为 ×${playbackRate}`;
+    });
+}
+applyPlaybackRate();
+updateLoopButtonUI();
+
+if (loopBtn) {
+    loopBtn.addEventListener('click', () => {
+        isLoopEnabled = !isLoopEnabled;
+        updateLoopButtonUI();
+        if (isPlaying && notes.length > 0) {
+            scheduleTransportFrom(currentTime);
+        }
+    });
+}
 
 // ==================== 音量控制 ====================
 const volumeSlider = document.getElementById('volumeSlider');
@@ -487,9 +932,8 @@ const volumeValue = document.getElementById('volumeValue');
 
 function updateVolume() {
     const dbValue = parseFloat(volumeSlider.value);
-    // 检查实例是否存在且未被销毁
-    if (currentInstrument && !currentInstrument.disposed) {
-        currentInstrument.volume.value = dbValue;
+    if (masterVolume && !masterVolume.disposed) {
+        masterVolume.volume.value = dbValue;
     }
     volumeValue.textContent = dbValue + ' dB';
 }
@@ -605,6 +1049,18 @@ const progressSlider = document.getElementById('progressSlider');
 const currentTimeEl = document.getElementById('currentTime');
 const totalTimeEl = document.getElementById('totalTime');
 
+function getEffectivePlaybackRate() {
+    return Number.isFinite(playbackRate) && playbackRate > 0 ? playbackRate : 1;
+}
+
+function toTransportTime(songTime) {
+    return songTime / getEffectivePlaybackRate();
+}
+
+function toSongTime(transportTime) {
+    return transportTime * getEffectivePlaybackRate();
+}
+
 function formatTime(seconds) {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
@@ -619,7 +1075,52 @@ function updateProgressUI() {
         }
         currentTimeEl.textContent = formatTime(currentTime);
         totalTimeEl.textContent = formatTime(totalDuration);
+    } else {
+        if (!isDraggingProgress) {
+            progressSlider.value = 0;
+        }
+        currentTimeEl.textContent = '0:00';
+        totalTimeEl.textContent = '0:00';
     }
+}
+
+function updateLoopButtonUI() {
+    if (!loopBtn) return;
+    loopBtn.classList.toggle('active', isLoopEnabled);
+    loopBtn.setAttribute('aria-pressed', isLoopEnabled ? 'true' : 'false');
+    loopBtn.title = isLoopEnabled ? '循环播放：开启' : '循环播放：关闭';
+}
+
+function scheduleTransportFrom(songStartTime) {
+    if (notes.length === 0) return;
+
+    Tone.Transport.stop();
+    Tone.Transport.cancel();
+
+    notes.forEach(note => {
+        if (note.time >= songStartTime) {
+            scheduleNoteToTransport(note);
+        }
+    });
+
+    const lastNote = notes[notes.length - 1].time;
+    const loopEnd = toTransportTime(lastNote + 0.5);
+
+    // 不使用 Transport.loop（schedule 的事件在 loop 后不会自动复用），
+    // 循环模式下在结尾显式重建一轮调度，确保每轮都有声音。
+    Tone.Transport.loop = false;
+    Tone.Transport.schedule(() => {
+        if (!isPlaying) return;
+
+        if (isLoopEnabled) {
+            currentTime = 0;
+            scheduleTransportFrom(0);
+        } else {
+            stopPlay(true);
+        }
+    }, loopEnd);
+
+    Tone.Transport.start(undefined, toTransportTime(songStartTime));
 }
 
 // 拖动进度条开始
@@ -642,21 +1143,7 @@ function handleSeekEnd() {
         progressSlider.value = (currentTime / totalDuration) * 100;
 
         if (isPlaying) {
-            Tone.Transport.stop();
-            Tone.Transport.cancel();
-
-            notes.forEach(note => {
-                if (note.time >= currentTime) {
-                    scheduleNoteToTransport(note)
-                }
-            });
-
-            const lastNote = notes[notes.length - 1].time;
-            Tone.Transport.schedule(() => {
-                stopPlay(true);
-            }, lastNote + 0.5);
-
-            Tone.Transport.start(undefined, currentTime);
+            scheduleTransportFrom(currentTime);
         } else {
             drawFrame(currentTime);
         }
@@ -670,18 +1157,36 @@ progressSlider.addEventListener('mouseup', handleSeekEnd);
 progressSlider.addEventListener('touchend', handleSeekEnd);
 
 // ==================== 工具：停止并清理 ====================
-function stopAndClear() {
+function resetPlaybackState(resetToStart = true) {
     isPlaying = false;
+    Tone.Transport.loop = false;
     Tone.Transport.stop();
     Tone.Transport.cancel();
-    currentTime = 0;
+    if (resetToStart) {
+        currentTime = 0;
+    }
     document.getElementById('playIcon').innerHTML = '<polygon points="5,3 19,12 5,21"/>';
     updateProgressUI();
+}
+
+function clearLoadedMidiData() {
+    notes = [];
+    gridLines = [];
+    totalDuration = 0;
+    currentTime = 0;
+    playBtn.disabled = true;
     // 清除音轨信息和文件元信息
     trackInfo = [];
     midiMeta = null;
     updateMidiInfo();
     initTrackPanel();
+    updateProgressUI();
+    drawFrame(0);
+}
+
+function stopAndClear() {
+    resetPlaybackState(true);
+    clearLoadedMidiData();
 }
 
 // ==================== 加载 MIDI ====================
@@ -708,6 +1213,7 @@ fileInput.addEventListener('change', async (e) => {
 
         // 提取音轨信息
         extractTrackInfo(midi);
+        await preloadAutoTrackInstruments();
 
         midi.tracks.forEach(track => {
             if (track.notes.length > 0) {
@@ -774,6 +1280,7 @@ async function loadExampleMidi(filePath) {
 
         // 提取音轨信息
         extractTrackInfo(midi);
+        await preloadAutoTrackInstruments();
 
         midi.tracks.forEach(track => {
             if (track.notes.length > 0) {
@@ -823,20 +1330,23 @@ exampleSelect.addEventListener('change', (e) => {
 
 // 音符调度函数
 function scheduleNoteToTransport(note) {
+    const noteStart = toTransportTime(note.time);
+    const noteDuration = Math.max(0.01, note.duration / getEffectivePlaybackRate());
+
     Tone.Transport.schedule((time) => {
         const track = trackInfo[note.track];
         if (!track || !track.enabled || track.volume === 0) return;
-        // 优先级：如果音轨是 inherit，使用全局变量 globalInstrumentType，否则用音轨私有音色
-        const targetType = track.instrument === 'inherit' ? globalInstrumentType : track.instrument;
+
+        const targetType = getTrackResolvedInstrumentType(track);
         // 从池中获取实例，如果还没加载好则跳过（避免报错导致停播）
-        const inst = instrumentPool[targetType];
+        const inst = instrumentPool[targetType] || instrumentPool['default'];
         if (inst) {
             const finalVelocity = Math.max(0, Math.min(1, note.velocity * track.volume));
             if (finalVelocity > 0.01) {
-                inst.triggerAttackRelease(note.name, note.duration, time, finalVelocity);
+                inst.triggerAttackRelease(note.name, noteDuration, time, finalVelocity);
             }
         }
-    }, note.time);
+    }, noteStart);
 }
 
 // ==================== 播放控制 ====================
@@ -844,29 +1354,14 @@ async function startPlay() {
     if (notes.length === 0) return;
 
     await Tone.start();
+    applyPlaybackRate();
     isPlaying = true;
     document.getElementById('playIcon').innerHTML = '<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>';
     statusEl.textContent = '播放中...';
 
     const startOffset = currentTime;
 
-    // 清除之前的调度，防止重复调度
-    Tone.Transport.cancel();
-
-    // 安排所有音符
-    notes.forEach(note => {
-        if (note.time >= startOffset) {
-            scheduleNoteToTransport(note);
-        }
-    });
-
-    // 结束时停止
-    const lastNote = notes[notes.length - 1].time;
-    Tone.Transport.schedule(() => {
-        stopPlay(true);
-    }, lastNote + 0.5);
-
-    Tone.Transport.start(undefined, startOffset);
+    scheduleTransportFrom(startOffset);
     currentTime = startOffset;
 
     requestAnimationFrame(renderLoop);
@@ -880,10 +1375,10 @@ function pausePlay() {
 }
 
 function stopPlay(isEnd = false) {
-    stopAndClear();
+    resetPlaybackState(true);
     statusEl.textContent = isEnd ? '播放完毕' : '已停止';
 
-    if (!isEnd) {
+    if (notes.length > 0) {
         drawFrame(0);
     }
 }
@@ -900,7 +1395,7 @@ playBtn.addEventListener('click', () => {
 function renderLoop() {
     if (!isPlaying) return;
 
-    currentTime = Tone.Transport.seconds;
+    currentTime = Math.min(totalDuration, toSongTime(Tone.Transport.seconds));
     updateProgressUI();
     drawFrame(currentTime);
 

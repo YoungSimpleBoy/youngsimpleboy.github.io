@@ -317,6 +317,45 @@ input[type=range]:hover::-webkit-slider-thumb {
 }
 
 /* ==================== 画布样式 ==================== */
+.canvas-wrapper {
+    width: 95%;
+    max-width: 1440px;
+    position: relative;
+    border-radius: 12px;
+}
+
+.canvas-wrapper.fullscreen {
+    width: 100%;
+    max-width: none;
+}
+
+.canvas-wrapper.fullscreen #canvas {
+    border-radius: 0;
+    box-shadow: none;
+}
+
+.canvas-fs-btn {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 3;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--bg-secondary) 86%, transparent);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    font-size: 16px;
+    line-height: 1;
+    backdrop-filter: blur(6px);
+}
+
+.canvas-fs-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
 #canvas {
     background: var(--canvas-bg);
     border-radius: 12px;
@@ -325,8 +364,7 @@ input[type=range]:hover::-webkit-slider-thumb {
     display: block;
     transition: background-color 0.3s ease, box-shadow 0.3s ease;
     width: 100%;
-    /* 默认全宽 */
-    max-width: 1440px;
+    max-width: none;
 }
 
 /* ==================== 底部信息 ==================== */
@@ -365,9 +403,10 @@ input[type=range]:hover::-webkit-slider-thumb {
 
 /* 进度条区域垂直对齐 */
 .progress-section {
-    display: flex;
+    display: grid;
+    grid-template-columns: auto auto minmax(170px, 230px) auto auto auto minmax(220px, 1fr) auto;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
     background: rgba(0, 0, 0, 0.15);
     padding: 12px 18px;
     border-radius: 12px;
@@ -379,42 +418,173 @@ input[type=range]:hover::-webkit-slider-thumb {
     border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
-/* 设置选项网格化，排列更整齐 */
-.settings-section {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 16px;
+.progress-section .custom-select-wrapper {
     width: 100%;
 }
 
-.volume-control {
+.progress-section .custom-select {
+    width: 100%;
+    min-height: 34px;
+    font-size: 13px;
+}
 
-    background: var(--bg-primary);
-    padding: 8px 16px;
+.progress-section #currentTime,
+.progress-section #totalTime {
+    min-width: 42px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-secondary);
+}
+
+.progress-section .progress-bar {
+    width: 100%;
+    min-width: 200px;
+}
+
+.loop-btn {
+    min-width: 58px;
+    padding: 8px 10px;
     border-radius: 10px;
-    border: 1px solid var(--border-color);
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
+    border: 1px solid var(--select-border);
+    background: var(--select-bg);
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 600;
 }
 
-.volume-control:has(input[type="range"]) {
+.loop-btn:hover {
+    border-color: var(--accent);
+    color: var(--text-primary);
+}
+
+.loop-btn.active {
+    color: #fff;
+    border-color: var(--accent);
+    background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+}
+
+/* ==================== 设置控件（重写） ==================== */
+.settings-section {
     display: grid;
-    grid-template-columns: 60px 1fr 60px;
-    /* 标签 | 滑块 | 数值 */
-    gap: 12px;
-    align-items: center;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 14px;
+    width: 100%;
+    align-items: stretch;
 }
 
-/* 3. 滑块强制占满中间列 */
-.volume-control:has(input[type="range"]) .slider {
-    width: 100% !important;
-    flex-grow: unset;
-    /* Grid 中不需要 flex-grow */
+.settings-section .volume-control {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 10px 12px;
+    min-height: 56px;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+    white-space: normal;
+}
+
+.settings-section .volume-control > span:first-child {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--text-secondary);
+    min-width: 72px;
+}
+
+.settings-section .volume-control:has(input[type="range"]) {
+    display: grid;
+    grid-template-columns: 72px minmax(0, 1fr) 64px;
+    align-items: center;
+    gap: 10px;
+}
+
+.settings-section .volume-control:has(input[type="range"]) .slider {
+    width: 100%;
     max-width: none;
+}
+
+.settings-section .volume-control:has(input[type="range"]) > span:last-child {
+    text-align: right;
+    min-width: 56px;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-primary);
+}
+
+.settings-section .volume-control:has(select) {
+    display: grid;
+    grid-template-columns: 72px minmax(0, 1fr);
+    align-items: center;
+    gap: 10px;
+}
+
+.settings-section .volume-control:has(.direction-group) {
+    display: grid;
+    grid-template-columns: 72px minmax(0, 1fr);
+    align-items: center;
+    gap: 10px;
+}
+
+.settings-section .volume-control:has(.switch-container) {
+    display: grid;
+    grid-template-columns: 72px 1fr;
+    align-items: center;
+    gap: 10px;
+}
+
+.settings-section .volume-control:has(.switch-container) .switch-container {
+    justify-self: end;
+}
+
+.settings-section .custom-select-wrapper {
+    width: 100%;
+}
+
+.settings-section .custom-select {
+    width: 100%;
+    min-height: 34px;
+    font-size: 13px;
+}
+
+.direction-group {
+    display: inline-grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    width: 100%;
+}
+
+.direction-btn {
+    border: 1px solid var(--select-border);
+    background: var(--select-bg);
+    color: var(--text-secondary);
+    border-radius: 8px;
+    padding: 7px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1;
+}
+
+.direction-btn:hover {
+    border-color: var(--accent);
+    color: var(--text-primary);
+}
+
+.direction-btn.active {
+    color: #fff;
+    border-color: var(--accent);
+    background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+}
+
+.playback-rate-control {
+    display: grid !important;
+    grid-template-columns: 72px minmax(0, 1fr) 64px !important;
+    align-items: center;
+    gap: 10px;
+}
+
+#playbackRateValue {
+    min-width: 56px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-primary);
 }
 
 .progress-bar {
@@ -460,10 +630,7 @@ input[type=range]:hover::-webkit-slider-thumb {
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
 }
 
-.settings-section {
-    display: flex;
-    gap: 15px;
-}
+
 
 /* ==================== 开关样式 ==================== */
 .switch-container {
@@ -612,7 +779,7 @@ input:checked+.checkmark:before {
 
 .track-list {
     display: flex;
-    flex-wrap: wrap;
+    flex-direction: column;
     gap: 10px;
 }
 
@@ -633,9 +800,9 @@ input:checked+.checkmark:before {
     border-radius: 8px;
     border: 1px solid transparent;
     transition: all 0.2s;
-    width: calc(50% - 5px);
-    /* 如果空间不够，可以让它占半行，或者根据你的布局调整 */
-    min-width: 280px;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
 }
 
 .track-volume-slider {
@@ -735,6 +902,8 @@ input:checked+.checkmark:before {
     margin: 0 5px;
     cursor: pointer;
     outline: none;
+    min-width: 240px;
+    max-width: 420px;
 }
 
 .track-instrument-select:hover {
@@ -742,12 +911,49 @@ input:checked+.checkmark:before {
     color: var(--text-primary);
 }
 
+.track-instrument-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.gm-library-toggle-btn {
+    border: 1px solid var(--border-color);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    border-radius: 6px;
+    font-size: 12px;
+    padding: 4px 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.gm-library-toggle-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.gm-library-tip {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
 /* 确保 track-item 里的元素对齐 */
 .track-item {
     display: flex;
     align-items: center;
-    flex-wrap: wrap; /* 如果屏幕窄，允许换行 */
+    flex-wrap: nowrap;
     gap: 10px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: nowrap;
 }
 
 /* MIDI 文件信息行 */
@@ -861,9 +1067,13 @@ input:checked+.checkmark:before {
         padding: 15px;
     }
 
+    .canvas-wrapper {
+        width: 95% !important;
+    }
+
     /* 画布自适应 */
     #canvas {
-        width: 95% !important;
+        width: 100% !important;
         height: auto !important;
         aspect-ratio: unset;
         /* 取消固定比例 */
@@ -906,25 +1116,33 @@ input:checked+.checkmark:before {
 
     /* 进度条区域：充满整行 */
     .progress-section {
+        display: flex;
         flex-wrap: wrap;
-        justify-content: flex-start;
         align-items: center;
         gap: 8px;
         padding: 10px 12px;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        scroll-behavior: smooth;
+    }
+
+    .progress-section > .upload-btn {
+        order: 1;
+        flex: 1 1 100%;
+        width: 100% !important;
+    }
+
+    .progress-section > .select-label {
+        display: none;
+    }
+
+    .progress-section > .custom-select-wrapper {
+        order: 2;
+        flex: 1 1 100%;
+        width: 100%;
     }
 
     .upload-btn {
-        width: auto !important;
-        /* 取消固定200px */
         min-width: 100px;
-        /* 刚好容纳“上传 MIDI 文件” */
         padding: 8px 16px;
         font-size: 13px;
-        flex-shrink: 0;
-        /* 禁止缩小 */
         white-space: nowrap;
     }
 
@@ -933,21 +1151,20 @@ input:checked+.checkmark:before {
         white-space: nowrap;
     }
 
-    .custom-select-wrapper {
-        flex-shrink: 0;
-        width: 200px;
-    }
-
     .custom-select {
         width: 100%;
         padding: 7px 10px;
         font-size: 13px;
     }
 
+    .progress-section > #loopBtn { order: 3; }
+    .progress-section > #playBtn { order: 4; }
+    .progress-section > #currentTime { order: 5; }
+    .progress-section > #totalTime { order: 7; margin-left: auto; }
+
     #playBtn {
         padding: 8px 14px;
         min-width: 48px;
-        flex-shrink: 0;
     }
 
     #currentTime,
@@ -955,76 +1172,68 @@ input:checked+.checkmark:before {
         font-size: 13px;
         min-width: 38px;
         text-align: center;
-        flex-shrink: 0;
         font-variant-numeric: tabular-nums;
     }
 
     .progress-bar {
-        flex-grow: 1;
-        width: auto !important;
-        min-width: 120px;
-        /* 至少保持可拖动宽度 */
-        order: unset;
-        /* 取消之前的 order:10 */
-    }
-
-    /* 使用 Grid 布局替代 Flex，强制等宽排列 */
-    .settings-section {
-        display: grid;
-        /* 自动换行：每个格子最小 220px，空间足够则等分撑满整个宽度 */
-        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-        gap: 16px;
-        width: 100%;
-    }
-
-    .volume-control {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        height: 100%;
-        box-sizing: border-box;
-        min-height: 52px;
-        /* 统一高度 */
-    }
-
-    /* 1. 左侧标签固定宽度 */
-    .volume-control>span:first-child {
-        min-width: 60px;
-        flex-shrink: 0;
-        font-size: 13px;
-        font-weight: bold;
-        color: var(--text-secondary);
-    }
-
-    /* 2. 【关键】只对两个滑块控件使用 Grid 精确布局 */
-    .volume-control:has(input[type="range"]) {
-        display: grid;
-        grid-template-columns: 96px 1fr 60px;
-        /* 标签 | 滑块 | 数值 */
-        gap: 12px;
-        align-items: center;
-    }
-
-    /* 3. 滑块强制占满中间列 */
-    .volume-control:has(input[type="range"]) .slider {
+        order: 6;
+        flex: 1 1 120px;
         width: 100% !important;
-        flex-grow: unset;
-        /* Grid 中不需要 flex-grow */
-        max-width: none;
+        min-width: 120px;
     }
 
-    /* 4. 右侧数值统一宽度 + 右对齐 */
-    .volume-control>span:last-child {
-        min-width: 72px;
-        text-align: right;
-        font-variant-numeric: tabular-nums;
-        flex-shrink: 0;
+    .settings-section {
+        grid-template-columns: 1fr;
+        gap: 10px;
     }
 
-    .custom-select {
-        width: 100%;
-        /* 下拉框占满 */
+    .settings-section .volume-control {
+        min-height: 52px;
+        padding: 9px 10px;
+        border-radius: 10px;
+    }
+
+    .settings-section .volume-control > span:first-child {
+        min-width: 64px;
+        font-size: 12px;
+    }
+
+    .settings-section .volume-control:has(input[type="range"]) {
+        grid-template-columns: 64px minmax(0, 1fr) 56px;
+        gap: 8px;
+    }
+
+    .settings-section .volume-control:has(select) {
+        grid-template-columns: 64px minmax(0, 1fr);
+        gap: 8px;
+    }
+
+    .settings-section .volume-control:has(.direction-group) {
+        grid-template-columns: 64px minmax(0, 1fr);
+        gap: 8px;
+    }
+
+    .settings-section .volume-control:has(.switch-container) {
+        grid-template-columns: 64px 1fr;
+    }
+
+    .settings-section .custom-select {
+        padding: 7px 10px;
+        font-size: 12px;
+    }
+
+    .playback-rate-control {
+        grid-template-columns: 64px minmax(0, 1fr) 56px !important;
+    }
+
+    .direction-btn {
+        padding: 8px 8px;
+        font-size: 12px;
+    }
+
+    #playbackRateValue {
+        min-width: 52px;
+        font-size: 12px;
     }
 
     /* 音轨面板优化 */

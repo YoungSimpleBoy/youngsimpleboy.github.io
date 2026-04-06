@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MIDI 五线谱查看器</title>
+  <script src="https://unpkg.com/@tonejs/midi"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vexflow@4/releases/vexflow-min.js"></script>
+  <style>
+    :root {
+      --bg-primary: #111;
+      --bg-secondary: #1a1a1a;
+      --text-primary: #fff;
+      --text-secondary: #888;
+      --border-color: #333;
+      --accent: #667eea;
+    }
+    .light {
+      --bg-primary: #f0f0f0;
+      --bg-secondary: #fff;
+      --text-primary: #111;
+      --text-secondary: #555;
+      --border-color: #ddd;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: 'Segoe UI', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      transition: background 0.3s, color 0.3s;
+    }
+    .page-wrapper { width: 95%; max-width: 1200px; }
+
+    /* Header */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .header h1 { font-size: 1.4rem; font-weight: 600; }
+    .header-actions { display: flex; gap: 8px; }
+    .btn-ghost {
+      background: rgba(255,255,255,0.08);
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 6px 14px;
+      font-size: 13px;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: background 0.2s;
+    }
+    .btn-ghost:hover { background: rgba(255,255,255,0.15); }
+
+    /* Controls bar */
+    .controls-bar {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+    #fileInput { display: none; }
+    .btn-upload {
+      background: rgba(102,126,234,0.12);
+      color: var(--text-primary);
+      border: 1px solid rgba(102,126,234,0.35);
+      border-radius: 6px;
+      padding: 6px 14px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: background 0.2s;
+      white-space: nowrap;
+    }
+    .btn-upload:hover { background: rgba(102,126,234,0.25); }
+    select.ctrl-select {
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .sep { color: var(--text-secondary); font-size: 12px; }
+    .ctrl-label { font-size: 13px; color: var(--text-secondary); white-space: nowrap; }
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 7px 22px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      margin-left: auto;
+      transition: opacity 0.2s;
+    }
+    .btn-primary:hover { opacity: 0.85; }
+    .btn-primary:disabled { opacity: 0.35; cursor: not-allowed; }
+
+    /* Status */
+    #statusMsg {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-bottom: 12px;
+      min-height: 20px;
+    }
+
+    /* Score info bar */
+    #scoreInfoBar {
+      display: none;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .score-info-badge {
+      background: rgba(102,126,234,0.10);
+      border: 1px solid rgba(102,126,234,0.28);
+      border-radius: 20px;
+      padding: 3px 12px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      white-space: nowrap;
+    }
+    .score-info-badge .info-label {
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-right: 3px;
+    }
+
+    /* Score container */
+    .score-outer {
+      background: #fafafa;
+      border-radius: 10px;
+      padding: 24px 20px;
+      overflow-x: auto;
+      min-height: 200px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.35);
+      position: relative;
+    }
+    .score-empty {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 200px;
+      color: #bbb;
+      font-size: 14px;
+    }
+    #scoreContainer svg { display: block; }
+  </style>
+</head>
+<body>
+  <div class="page-wrapper">
+    <div class="header">
+      <h1>MIDI 五线谱查看器</h1>
+      <div class="header-actions">
+        <a href="index.html" class="btn-ghost">← 返回播放器</a>
+        <button class="btn-ghost" id="themeToggle">☀ 切换主题</button>
+      </div>
+    </div>
+
+    <div class="controls-bar">
+      <input type="file" id="fileInput" accept=".mid,.midi">
+      <button class="btn-upload" onclick="document.getElementById('fileInput').click()">上传 MIDI 文件</button>
+      <span class="sep">或</span>
+      <select class="ctrl-select" id="exampleSelect">
+        <option value="">选择示例...</option>
+        <option value="example_midi/example01.mid">示例 1</option>
+        <option value="example_midi/example02.mid">示例 2</option>
+        <option value="example_midi/example03.mid">示例 3</option>
+        <option value="example_midi/example04.mid">示例 4</option>
+        <option value="example_midi/example05.mid">示例 5</option>
+      </select>
+      <span class="sep">｜</span>
+      <span class="ctrl-label">音轨：</span>
+      <select class="ctrl-select" id="trackSelect" disabled>
+        <option value="">加载文件后显示...</option>
+      </select>
+      <span class="sep">｜</span>
+      <label class="ctrl-label" style="display:flex;align-items:center;gap:4px;cursor:pointer;">
+        <input type="checkbox" id="pianoMode"> 钢琴谱模式
+      </label>
+      <span class="ctrl-label piano-opt" id="splitLabel" style="display:none">分割点：</span>
+      <select class="ctrl-select piano-opt" id="splitSelect" style="display:none">
+        <option value="60" selected>C4 (中央C)</option>
+        <option value="55">G3</option>
+        <option value="57">A3</option>
+        <option value="62">D4</option>
+        <option value="64">E4</option>
+      </select>
+      <button class="btn-primary" id="renderBtn" disabled>渲染五线谱</button>
+    </div>
+
+    <p id="statusMsg">请上传 MIDI 文件或选择示例</p>
+
+    <div id="scoreInfoBar">
+      <span class="score-info-badge" id="infoInstrument"></span>
+      <span class="score-info-badge" id="infoKey"></span>
+      <span class="score-info-badge" id="infoTimeSig"></span>
+      <span class="score-info-badge" id="infoBpm"></span>
+    </div>
+
+    <div class="score-outer" id="scoreOuter">
+      <div class="score-empty" id="scoreContainer">
+        <span>五线谱将在此显示</span>
+      </div>
+    </div>
+  </div>
+
+  <script src="score_demo.js"></script>
+</body>
+</html>

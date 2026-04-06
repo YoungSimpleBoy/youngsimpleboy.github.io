@@ -7,6 +7,8 @@
     <link rel="stylesheet" href="styles.css">
     <script src="https://unpkg.com/tone@14.7.77/build/Tone.js"></script>
     <script src="https://unpkg.com/@tonejs/midi"></script>
+    <!-- 用于GBK解码的encoding.js -->
+    <script src="https://cdn.jsdelivr.net/npm/encoding-japanese@2.0.0/encoding.min.js"></script>
 </head>
 <body>
     <div class="header">
@@ -22,7 +24,10 @@
         </button>
     </div>
     
-    <canvas id="canvas"></canvas>
+    <div class="canvas-wrapper" id="canvasWrapper">
+        <button class="canvas-fs-btn" id="canvasFsBtn" type="button" title="全屏显示可视化" aria-label="全屏显示可视化">⛶</button>
+        <canvas id="canvas"></canvas>
+    </div>
     
     <div class="bottom-controls">
         
@@ -42,6 +47,9 @@
                     <option value="example_midi/example05.mid">示例 5</option>
                 </select>
             </div>
+            <button id="loopBtn" class="loop-btn" type="button" aria-pressed="false" title="循环播放：关闭">
+                循环
+            </button>
             <button id="playBtn" disabled>
                 <svg id="playIcon" viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg>
             </button>
@@ -69,33 +77,15 @@
             </div>
             <div class="volume-control">
                 <span>方向</span>
-                <div class="custom-select-wrapper">
-                    <select id="directionSelect" class="custom-select">
-                        <option value="horizontal">水平 (向左流动)</option>
-                        <option value="vertical">垂直 (向下掉落)</option>
-                    </select>
+                <div class="direction-group" id="directionGroup">
+                    <button type="button" class="direction-btn active" data-direction="horizontal">水平</button>
+                    <button type="button" class="direction-btn" data-direction="vertical">垂直</button>
                 </div>
             </div>
-            <div class="volume-control">
-                <span>音色</span>
-                <div class="custom-select-wrapper">
-                    <select id="instrumentSelect" class="custom-select">
-                        <option value="default">正弦合成器（默认）</option>
-                        <option value="piano">三角钢琴（部分采样，需加载）</option>
-                        <option value="violin">小提琴（全采样，需加载）</option>
-                        <option value="viola">中提琴（全采样，需加载）</option>
-                        <option value="cello">大提琴（全采样，需加载）</option>
-                        <option value="piccolo">短笛（全采样，需加载）</option>
-                        <option value="flute">长笛（全采样，需加载）</option>
-                        <option value="acoustic_guitar">吉他（全采样，需加载）</option>
-                        <option value="music_box">八音盒（全采样，需加载）</option>
-                        <option value="shamisen">三味线（全采样，不好听）</option>
-                        <option value="voice">人声（全采样，不好听）</option>
-                        <option value="fm">FM 电钢琴（合成器，不稳定）</option>
-                        <option value="am">AM 复古感（合成器，不稳定）</option>
-                        <option value="fat">胖锯齿波（合成器，不稳定）</option>
-                    </select>
-                </div>
+            <div class="volume-control playback-rate-control">
+                <span>播放速度</span>
+                <input type="range" id="playbackRateSlider" min="0.5" max="2" value="1" step="0.25" class="slider">
+                <span id="playbackRateValue">×1.0</span>
             </div>
         </div>
     </div>
