@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MIDI 五线谱查看器</title>
   <script src="https://unpkg.com/@tonejs/midi"></script>
-  <script src="https://cdn.jsdelivr.net/npm/vexflow@4/releases/vexflow-min.js"></script>
+  <script src="https://www.verovio.org/javascript/develop/verovio-toolkit-wasm.js" defer></script>
   <style>
     :root {
       --bg-primary: #111;
@@ -145,10 +145,11 @@
 
     /* Score container */
     .score-outer {
-      background: #fafafa;
+      background: #fff;
       border-radius: 10px;
-      padding: 24px 20px;
+      padding: 20px 12px;
       overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
       min-height: 200px;
       box-shadow: 0 4px 20px rgba(0,0,0,0.35);
       position: relative;
@@ -161,7 +162,20 @@
       color: #bbb;
       font-size: 14px;
     }
-    #scoreContainer svg { display: block; }
+    #scoreContainer svg {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
+    /* Dark mode: invert Verovio SVG so black notes become white on dark bg */
+    body:not(.light) .score-outer {
+      background: #181818;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+    }
+    body:not(.light) #scoreContainer svg {
+      filter: invert(0.5) hue-rotate(180deg);
+    }
   </style>
 </head>
 <body>
