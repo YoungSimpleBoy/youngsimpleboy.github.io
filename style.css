@@ -770,31 +770,80 @@ a:hover {
     opacity: 0.9;
 }
 
-/* KaTeX 块级公式居中 */
+/* KaTeX 块级公式：长公式可横向滚动，并为编号预留空间 */
 .katex-display {
-    text-align: center;
     margin: 1.5rem 0;
+    padding: 0.25rem 0;
+    text-align: center;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(139, 148, 158, 0.45) transparent;
     color: var(--text-secondary);
 }
 
-/* 公式编号容器 - 只控制大小和位置，不添加框 */
-.katex .tag {
-    display: inline-flex;
-    align-items: center;
-    height: 2.2rem;
-    min-width: 2.2rem;
+.katex-display::-webkit-scrollbar {
+    height: 4px;
+}
+
+.katex-display::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 999px;
+}
+
+.katex-display::-webkit-scrollbar-thumb {
+    background: rgba(139, 148, 158, 0.45);
+    border-radius: 999px;
+}
+
+.katex-display::-webkit-scrollbar-thumb:hover {
+    background: rgba(139, 148, 158, 0.68);
+}
+
+.light .katex-display {
+    scrollbar-color: rgba(87, 96, 106, 0.45) transparent;
+}
+
+.light .katex-display::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.light .katex-display::-webkit-scrollbar-thumb {
+    background: rgba(87, 96, 106, 0.45);
+}
+
+.light .katex-display::-webkit-scrollbar-thumb:hover {
+    background: rgba(87, 96, 106, 0.66);
+}
+
+.katex-display > .katex {
+    min-width: max-content;
+}
+
+.katex-display > .katex > .katex-html {
+    position: relative;
+    padding: 0 3.5em;
+}
+
+.katex-display > .katex > .katex-html > .tag {
+    right: 0.5em;
+    margin: 0;
     padding: 0;
-    margin-left: 0.5rem;
-    line-height: 1;
-    vertical-align: middle;
+    white-space: nowrap;
     background: none;
     border: none;
     border-radius: 0;
     box-shadow: none;
     color: inherit;
-    font-family: inherit;
-    font-size: inherit;
-    font-weight: normal;
+    font: inherit;
+    line-height: 1;
+}
+
+@media (max-width: 768px) {
+    .katex-display > .katex > .katex-html {
+        padding: 0 2.8em;
+    }
 }
 
 /* 兼容 MathJax 块级公式（版本 2 和 3） */
