@@ -63,6 +63,7 @@ function showPage(page) {
 
     const visiblePosts = Array.from(posts).filter(p => p.dataset.searched !== 'false');
     const totalPages = Math.max(1, Math.ceil(visiblePosts.length / POSTS_PER_PAGE));
+    const pagination = document.getElementById('pagination');
 
     currentPage = Math.max(1, Math.min(page, totalPages));
 
@@ -77,6 +78,9 @@ function showPage(page) {
             visiblePosts[i].style.display = '';
         }
     }
+
+    // 按筛选后的总页数控制分页显隐：超过 1 页才显示
+    if (pagination) pagination.style.display = totalPages > 1 ? 'flex' : 'none';
 
     updatePaginationUI(currentPage, totalPages);
 }
@@ -327,7 +331,6 @@ function initSearchAndPagination() {
     function performSearch() {
         const query = searchInput.value.toLowerCase().trim();
         const clearBtn = document.getElementById('searchClear');
-        const pagination = document.getElementById('pagination');
         // 显示/隐藏清除按钮
         if (clearBtn) clearBtn.style.display = query ? 'flex' : 'none';
         posts.forEach(post => {
@@ -336,10 +339,26 @@ function initSearchAndPagination() {
             const tags = post.querySelector('.post-tags')?.textContent.toLowerCase() || '';
             post.dataset.searched = (query === '' || title.includes(query) || excerpt.includes(query) || tags.includes(query)) ? 'true' : 'false';
         });
-        // 搜索时隐藏分页
-        if (pagination) pagination.style.display = query ? 'none' : 'flex';
         showPage(1); // 搜索后强制回第一页
     }
+
+    function searchByTag(tag) {
+        const keyword = (tag || '').trim();
+        if (!keyword) return;
+        searchInput.value = keyword;
+        performSearch();
+        searchInput.focus();
+    }
+
+    function bindPostTagSearch() {
+        document.querySelectorAll('.post-tags .tag').forEach(tagLink => {
+            tagLink.onclick = (e) => {
+                e.preventDefault();
+                searchByTag(tagLink.textContent);
+            };
+        });
+    }
+
     // 绑定搜索事件
     searchInput.oninput = performSearch;
     // 清除按钮
@@ -358,6 +377,7 @@ function initSearchAndPagination() {
     // 初始展示
     posts.forEach(post => post.dataset.searched = 'true');
     showPage(1);
+    bindPostTagSearch();
     console.log("分页与搜索初始化完成");
     // 1. 自动提取文章数据（只在这里执行一次）
     const extracted = extractPostsData();
@@ -368,14 +388,8 @@ function initSearchAndPagination() {
     }
     // 2. 自动处理来自关于页标签云的搜索请求（关键位置！）
     if (pendingSearchTag) {
-        const searchInput = document.getElementById('searchInput');
-        if (searchInput) {
-            searchInput.value = pendingSearchTag;
-            // 触发搜索（复用已有的 performSearch）
-            const event = new Event('input');
-            searchInput.dispatchEvent(event);
-            console.log(`🔍 已自动搜索标签: ${pendingSearchTag}`);
-        }
+        searchByTag(pendingSearchTag);
+        console.log(`🔍 已自动搜索标签: ${pendingSearchTag}`);
         pendingSearchTag = null;   // 清空
     }
 }
