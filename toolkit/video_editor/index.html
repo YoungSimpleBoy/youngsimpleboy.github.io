@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ClipForge - 网页视频切片器</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com" rel="preconnect">
+    <link crossorigin href="https://fonts.gstatic.com" rel="preconnect">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        (function () {
+            var savedTheme = localStorage.getItem("clipforge-theme");
+            if (savedTheme === "light") {
+                document.documentElement.classList.add("light");
+            }
+        })();
+    </script>
+</head>
+<body>
+    <header class="topbar">
+        <div>
+            <h1>ClipForge</h1>
+            <p>浏览器端视频切片与导出（ffmpeg.wasm）</p>
+        </div>
+        <div class="top-actions">
+            <button class="theme-toggle" id="themeToggle" title="切换主题" aria-label="切换主题">
+                <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="5"></circle>
+                    <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
+                </svg>
+                <svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <main class="layout">
+        <aside class="panel">
+            <section class="card">
+                <h2>1. 选择视频</h2>
+                <label class="file-field">
+                    <span>本地文件</span>
+                    <input id="videoFile" type="file" accept="video/*">
+                </label>
+                <p id="fileMeta" class="hint">尚未选择文件</p>
+            </section>
+
+            <section class="card">
+                <h2>2. 设置切片区间</h2>
+                <p class="hint">先在右侧预览中播放并定位，再设置起止时间。</p>
+                <div class="time-grid">
+                    <label>
+                        开始（秒）
+                        <input id="startInput" type="number" min="0" step="0.01" value="0">
+                    </label>
+                    <label>
+                        结束（秒）
+                        <input id="endInput" type="number" min="0" step="0.01" value="0">
+                    </label>
+                </div>
+                <div class="range-wrap">
+                    <label>
+                        开始滑块
+                        <input id="startRange" type="range" min="0" max="0" step="0.01" value="0">
+                    </label>
+                    <label>
+                        结束滑块
+                        <input id="endRange" type="range" min="0" max="0" step="0.01" value="0">
+                    </label>
+                </div>
+                <div class="btn-row">
+                    <button id="setStartFromCurrent" type="button">以当前播放点为开始</button>
+                    <button id="setEndFromCurrent" type="button">以当前播放点为结束</button>
+                </div>
+                <p id="clipSummary" class="mono summary">片段：0.00s ~ 0.00s（时长 0.00s）</p>
+            </section>
+
+            <section class="card">
+                <h2>3. 导出参数</h2>
+                <div class="field-row">
+                    <label>
+                        导出格式
+                        <select id="formatSelect">
+                            <option value="mp4">MP4（H.264）</option>
+                            <option value="webm">WebM（VP9）</option>
+                            <option value="gif">GIF 动图</option>
+                        </select>
+                    </label>
+                    <label>
+                        宽度
+                        <select id="widthSelect">
+                            <option value="keep">保持原始</option>
+                            <option value="1280">1280 px</option>
+                            <option value="960">960 px</option>
+                            <option value="720">720 px</option>
+                            <option value="480">480 px</option>
+                            <option value="360">360 px</option>
+                        </select>
+                    </label>
+                </div>
+                <div class="field-row" id="videoQualityRow">
+                    <label>
+                        视频质量
+                        <select id="qualitySelect">
+                            <option value="high">高质量（体积较大）</option>
+                            <option value="balanced" selected>平衡</option>
+                            <option value="small">小体积</option>
+                        </select>
+                    </label>
+                    <label class="checkbox-line">
+                        <input id="keepAudio" type="checkbox" checked>
+                        保留音频（仅视频格式）
+                    </label>
+                </div>
+                <div class="field-row" id="gifFpsRow">
+                    <label>
+                        GIF 帧率
+                        <input id="gifFps" type="number" min="5" max="30" step="1" value="12">
+                    </label>
+                    <p class="hint">GIF 建议短片段导出，文件体积会较大。</p>
+                </div>
+            </section>
+
+            <section class="card">
+                <h2>4. 执行导出</h2>
+                <div class="btn-row">
+                    <button id="loadEngineBtn" type="button">加载处理引擎</button>
+                    <button id="exportBtn" type="button">导出切片</button>
+                    <button id="clearResultBtn" type="button">清空结果</button>
+                </div>
+                <p id="statusText" class="status">状态：等待加载</p>
+            </section>
+
+            <section class="card">
+                <h2>处理日志</h2>
+                <pre id="logPanel">日志输出会显示在这里...</pre>
+            </section>
+        </aside>
+
+        <section class="viewer-column">
+            <article class="viewer-card">
+                <h2>视频预览</h2>
+                <video id="videoPreview" controls preload="metadata"></video>
+                <div class="viewer-meta" id="viewerMeta">时长：0.00s，当前播放点：0.00s</div>
+            </article>
+
+            <article class="viewer-card result-card">
+                <h2>导出结果</h2>
+                <div id="resultEmpty" class="result-empty">尚未导出结果</div>
+                <div id="resultBox" class="result-box hidden">
+                    <p id="resultName" class="mono"></p>
+                    <a id="downloadLink" href="#" download>下载导出文件</a>
+                    <div id="resultPreviewWrap"></div>
+                </div>
+            </article>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="footer-links">
+            <a href="../../index.html" target="_blank" rel="noopener">个人主页</a>
+            <a href="https://github.com/YoungSimpleBoy" target="_blank" rel="noopener">GitHub</a>
+            <a href="mailto:2404716575@qq.com" target="_blank" rel="noopener">E-mail</a>
+            <a href="https://space.bilibili.com/52652807" target="_blank" rel="noopener">bilibili</a>
+        </div>
+        <p class="copyright">© 2026 YoungSimpleBoy. All rights reserved.</p>
+    </footer>
+
+    <script src="./vendor/ffmpeg/ffmpeg.js"></script>
+    <script src="./vendor/ffmpeg/util.js"></script>
+    <script src="app.js" defer></script>
+</body>
+</html>
