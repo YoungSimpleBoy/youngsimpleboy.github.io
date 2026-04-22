@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Point Group Lab</title>
+    <title>Space Group Lab</title>
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com" rel="preconnect">
     <link crossorigin href="https://fonts.gstatic.com" rel="preconnect">
@@ -20,8 +20,8 @@
 <body>
     <header class="topbar">
         <div>
-            <h1>Point Group Lab</h1>
-            <p>晶体学点群交互可视化（HTML 复刻版）</p>
+            <h1>Space Group Lab</h1>
+            <p>晶体学空间群实验平台（第一阶段：Seitz 内核接入）</p>
         </div>
         <div class="top-actions">
             <button class="theme-toggle" id="themeToggle" title="切换主题" aria-label="切换主题">
@@ -39,53 +39,56 @@
     <main class="layout">
         <aside class="panel">
             <section class="card">
-                <h2>初始点</h2>
+                <h2>初始点（分数坐标）</h2>
                 <div class="grid-3">
                     <label>X
-                        <input id="seed-x" type="number" step="0.1" min="-1.5" max="1.5" value="0.2">
+                        <input id="seed-x" type="number" step="0.01" min="0" max="1" value="0.23">
                     </label>
                     <label>Y
-                        <input id="seed-y" type="number" step="0.1" min="-1.5" max="1.5" value="0.8">
+                        <input id="seed-y" type="number" step="0.01" min="0" max="1" value="0.34">
                     </label>
                     <label>Z
-                        <input id="seed-z" type="number" step="0.1" min="-1.5" max="1.5" value="0.5">
+                        <input id="seed-z" type="number" step="0.01" min="0" max="1" value="0.61">
                     </label>
                 </div>
             </section>
 
             <section class="card">
-                <h2>旋转 / 反轴生成元</h2>
-                <p class="hint">对应 MATLAB 的 RO 思路。国际符号中 n 为 n 重轴，<span class="hm-overbar">n</span> 为反轴（如 <span class="hm-overbar">3</span>、<span class="hm-overbar">4</span>、<span class="hm-overbar">6</span>）。</p>
-                <div class="op-row">
+                <h2>点群控件（对照）</h2>
+                <p class="hint">当前页面使用 Seitz 仿射运算。X/Y/Z 三轴可直接设置旋转（或反轴）与轴向分数平移 t；不再单列螺旋轴。平移输入可填小数 t（如 0.333），也可填整数 m（自动按 m/n 解释）。</p>
+                <div class="op-row op-row-axis">
                     <span>Z 轴</span>
                     <input id="z-order" type="number" min="0" max="12" step="1" value="4">
                     <select id="z-mode">
                         <option value="rot">n</option>
                         <option value="roto">n-bar</option>
                     </select>
+                    <input id="z-shift" type="number" step="0.01" min="-6" max="6" value="0" title="Z 轴平移：小数 t 或整数 m（自动按 m/n）">
                 </div>
-                <div class="op-row">
+                <div class="op-row op-row-axis">
                     <span>Y 轴</span>
                     <input id="y-order" type="number" min="0" max="12" step="1" value="0">
                     <select id="y-mode">
                         <option value="rot">n</option>
                         <option value="roto">n-bar</option>
                     </select>
+                    <input id="y-shift" type="number" step="0.01" min="-6" max="6" value="0" title="Y 轴平移：小数 t 或整数 m（自动按 m/n）">
                 </div>
-                <div class="op-row">
+                <div class="op-row op-row-axis">
                     <span>X 轴</span>
                     <input id="x-order" type="number" min="0" max="12" step="1" value="0">
                     <select id="x-mode">
                         <option value="rot">n</option>
                         <option value="roto">n-bar</option>
                     </select>
+                    <input id="x-shift" type="number" step="0.01" min="-6" max="6" value="0" title="X 轴平移：小数 t 或整数 m（自动按 m/n）">
                 </div>
                 <div class="op-row">
                     <span>[111] 轴</span>
-                    <input id="d-order" type="number" min="0" max="12" step="1" value="3">
+                    <input id="d-order" type="number" min="0" max="12" step="1" value="0">
                     <select id="d-mode">
                         <option value="rot">n</option>
-                        <option value="roto" selected>n-bar</option>
+                        <option value="roto">n-bar</option>
                     </select>
                 </div>
             </section>
@@ -97,6 +100,22 @@
                     <label><input id="m-y" type="checkbox"> m(010)</label>
                     <label><input id="m-x" type="checkbox"> m(100)</label>
                     <label><input id="inv" type="checkbox"> <span class="hm-overbar">1</span>（中心反演）</label>
+                </div>
+                <div class="op-row" style="margin-top:0.6rem;">
+                    <span>滑移面</span>
+                    <select id="glide-type">
+                        <option value="none">None</option>
+                        <option value="a">a</option>
+                        <option value="b">b</option>
+                        <option value="c" selected>c</option>
+                        <option value="n">n</option>
+                        <option value="d">d</option>
+                    </select>
+                    <select id="glide-normal">
+                        <option value="x">⊥ X</option>
+                        <option value="y" selected>⊥ Y</option>
+                        <option value="z">⊥ Z</option>
+                    </select>
                 </div>
             </section>
 
@@ -138,19 +157,36 @@
                             <output id="hull-opacity-value" for="hull-opacity">100%</output>
                         </div>
                     </label>
+                    <label class="range-control">
+                        <span>邻胞元素透明度</span>
+                        <div class="range-line">
+                            <input id="neighbor-sym-opacity" type="range" min="0" max="100" step="1" value="34">
+                            <output id="neighbor-sym-opacity-value" for="neighbor-sym-opacity">34%</output>
+                        </div>
+                    </label>
                     <label><input id="strict-style" type="checkbox" checked> 标准图示模式</label>
-                    <label><input id="show-vectors" type="checkbox"> 显示原点连线</label>
                     <label><input id="auto-spin" type="checkbox"> 自动旋转视角</label>
                 </div>
             </section>
 
             <section class="card stats">
                 <h2>统计</h2>
-                <p>生成元数量：<strong id="gen-count">0</strong></p>
-                <p>群操作数量：<strong id="op-count">1</strong></p>
+                <p>列表操作数：<strong id="gen-count">0</strong></p>
+                <p>闭包操作数：<strong id="op-count">1</strong></p>
                 <p>轨道点数量：<strong id="pt-count">1</strong></p>
                 <p id="warn" class="warn"></p>
                 <pre id="summary"></pre>
+            </section>
+
+            <section class="card diagnostics">
+                <h2>合法性诊断（非阻断）</h2>
+                <p class="hint">不阻止你探索“非标准组合”，只给出风险提示与参考匹配。</p>
+                <ul class="diagnostic-list">
+                    <li id="diag-growth">增长：-</li>
+                    <li id="diag-rotation">旋转阶：-</li>
+                    <li id="diag-translation">平移有理性：-</li>
+                    <li id="diag-match">标准匹配：-</li>
+                </ul>
             </section>
         </aside>
 
@@ -186,6 +222,8 @@
         <p class="copyright">© 2026 YoungSimpleBoy. All rights reserved.</p>
     </footer>
 
+    <script src="core/seitz.js"></script>
+    <script src="data/space_groups_min.js"></script>
     <script src="graphical_symbols.js"></script>
     <script src="app.js"></script>
 </body>
