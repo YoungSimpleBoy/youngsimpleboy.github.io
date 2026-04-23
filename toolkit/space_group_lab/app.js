@@ -1350,12 +1350,17 @@
 
     function axisPriority(axis) {
         const order = Math.max(2, Math.round(axis.order || 2));
-        // At coincident projected poles, show higher-order proper rotations first
-        // so 3/4/6 symbols are not hidden by secondary 2-fold components.
-        if (axis.mode === "rot") {
-            return -order;
+        const kind = axis && axis.kind ? axis.kind : "rot";
+        // Higher order wins first; then prefer richer proper-axis information.
+        // screw > rot > roto for ties so coincident low-order powers do not mask
+        // the principal axis symbol (e.g. 6 over 2).
+        let kindRank = 1;
+        if (kind === "screw") {
+            kindRank = 3;
+        } else if (kind === "rot") {
+            kindRank = 2;
         }
-        return 100 - order;
+        return -(order * 10 + kindRank);
     }
 
     function simplifyAxesForDisplay(axes) {
@@ -1363,30 +1368,15 @@
         for (const axis of axes || []) {
             const dKey = directionKey(axis.dir);
             if (!dirMap.has(dKey)) {
-                dirMap.set(dKey, { rot: null, screw: null, roto: null });
+                dirMap.set(dKey, axis);
+                continue;
             }
-            const bucket = dirMap.get(dKey);
-            const slot = axis.mode === "roto"
-                ? "roto"
-                : ((axis.kind === "screw" && (axis.screwP || 0) > 0) ? "screw" : "rot");
-            if (!bucket[slot] || Math.round(axis.order || 0) > Math.round(bucket[slot].order || 0)) {
-                bucket[slot] = axis;
+            const existed = dirMap.get(dKey);
+            if (axisPriority(axis) < axisPriority(existed)) {
+                dirMap.set(dKey, axis);
             }
         }
-
-        const out = [];
-        for (const entry of dirMap.values()) {
-            if (entry.rot) {
-                out.push(entry.rot);
-            }
-            if (entry.screw) {
-                out.push(entry.screw);
-            }
-            if (entry.roto) {
-                out.push(entry.roto);
-            }
-        }
-        return out;
+        return Array.from(dirMap.values());
     }
 
     function toSubscriptDigits(value) {
@@ -2909,7 +2899,7 @@
         }
         planeLayers.sort((a, b) => a.depth - b.depth);
 
-        const sortedAxes = elements.axes.slice().sort((a, b) => {
+        const sortedAxes = simplifyAxesForDisplay(elements.axes).sort((a, b) => {
             if (a.mode !== b.mode) {
                 return a.mode === "rot" ? -1 : 1;
             }
