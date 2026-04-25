@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <meta content="文章 - YoungSimpleBoy 的博客" name="description" />
+    <title>文章 - YoungSimpleBoy 的博客</title>
+    <link href="/style.css" rel="stylesheet" />
+    <script src="https://unpkg.com/@barba/core"></script>
+    <script src="https://unpkg.com/tone@14.7.77/build/Tone.js"></script>
+    <script src="https://unpkg.com/@tonejs/midi"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <link href="https://fonts.googleapis.com" rel="preconnect" />
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/katex/dist/katex.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/katex-copytex@latest/dist/katex-copytex.min.css" rel="stylesheet" type="text/css" />
+    <script async="" src="https://cdn.jsdelivr.net/npm/katex-copytex@latest/dist/katex-copytex.min.js"></script>
+    <script>
+        (function () {
+            var savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'light') document.documentElement.classList.add('light');
+        })();
+    </script>
+</head>
+
+<body data-barba="wrapper" id="top">
+    <header class="header">
+        <nav class="nav-container">
+            <a class="logo" href="/">~/blog</a>
+            <button aria-label="菜单" class="mobile-menu-btn" id="mobileMenuBtn">
+                <svg class="menu-icon" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+                    <path d="M4 6h16M4 12h16M4 18h16" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+                    </path>
+                </svg>
+            </button>
+            <ul class="nav-links" id="navLinks">
+                <li><a class="nav-link" href="/#posts">文章</a></li>
+                <li><a class="nav-link" href="/#posts">搜索</a></li>
+                <li><a class="nav-link" href="/about.html">关于</a></li>
+                <li>
+                    <button aria-label="切换主题" class="theme-toggle" id="themeToggle">
+                        <svg class="sun-icon" fill="none" height="18" stroke="currentColor" stroke-width="2"
+                            viewbox="0 0 24 24" width="18">
+                            <circle cx="12" cy="12" r="5"></circle>
+                            <line x1="12" x2="12" y1="1" y2="3"></line>
+                            <line x1="12" x2="12" y1="21" y2="23"></line>
+                            <line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line>
+                            <line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line>
+                            <line x1="1" x2="3" y1="12" y2="12"></line>
+                            <line x1="21" x2="23" y1="12" y2="12"></line>
+                            <line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line>
+                            <line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line>
+                        </svg>
+                        <svg class="moon-icon" fill="none" height="18" stroke="currentColor" stroke-width="2"
+                            viewbox="0 0 24 24" width="18">
+                            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                        </svg>
+                    </button>
+                </li>
+                <li>
+                    <button class="music-btn bgm-toggle" id="bgmToggle" title="播放/暂停 BGM">
+                        <svg class="bgm-play-icon" fill="none" height="18" stroke="currentColor" stroke-width="2"
+                            viewbox="0 0 24 24" width="18">
+                            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                        </svg>
+                        <svg class="bgm-pause-icon" fill="none" height="18" stroke="currentColor" stroke-width="2"
+                            style="display: none;" viewbox="0 0 24 24" width="18">
+                            <rect height="16" width="4" x="6" y="4"></rect>
+                            <rect height="16" width="4" x="14" y="4"></rect>
+                        </svg>
+                        <svg class="bgm-loading-icon" fill="none" height="18" stroke="currentColor" stroke-width="2"
+                            style="display: none;" viewbox="0 0 24 24" width="18">
+                            <circle cx="12" cy="12" r="10" stroke-dasharray="31.4 31.4" stroke-dashoffset="0">
+                                <animatetransform attributename="transform" dur="1s" from="0 12 12"
+                                    repeatcount="indefinite" to="360 12 12" type="rotate"></animatetransform>
+                            </circle>
+                        </svg>
+                    </button>
+                </li>
+            </ul>
+        </nav>
+    </header>
+
+    <main class="main-content" data-barba="container" data-barba-namespace="post">
+        <article class="article">
+            <header class="article-header">
+                <div class="article-meta">
+                    <time id="postDate" datetime=""></time>
+                    <span class="article-category" id="postCategory"></span>
+                </div>
+                <h1 class="article-title" id="postTitle">加载中...</h1>
+                <div class="article-tags" id="postTags"></div>
+            </header>
+            <div class="article-body" id="postBody">
+                <p style="color: var(--text-secondary);">正在加载文章...</p>
+            </div>
+        </article>
+        <div class="article-footer">
+            <a href="/#posts" class="back-link">← 返回文章列表</a>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-links">
+                <a href="https://github.com/YoungSimpleBoy" rel="noopener" target="_blank">
+                    <svg fill="currentColor" height="16" viewbox="0 0 24 24" width="16">
+                        <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z">
+                        </path>
+                    </svg>
+                    GitHub
+                </a>
+                <a href="mailto:2404716575@qq.com">
+                    <svg fill="none" height="16" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24" width="16">
+                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                        <polyline points="22,6 12,13 2,6"></polyline>
+                    </svg>
+                    E-mail
+                </a>
+                <a href="https://space.bilibili.com/52652807" rel="noopener" target="_blank">
+                    <svg fill="currentColor" height="16" viewbox="0 0 24 24" width="16">
+                        <path d="M17.813 4.653h.854c1.51.054 2.769.578 3.773 1.574 1.004.995 1.524 2.249 1.56 3.76v7.36c-.036 1.51-.556 2.769-1.56 3.773s-2.262 1.524-3.773 1.56H5.333c-1.51-.036-2.769-.556-3.773-1.56S.036 18.858 0 17.347v-7.36c.036-1.511.556-2.765 1.56-3.76 1.004-.996 2.262-1.52 3.773-1.574h.774l-1.174-1.12a1.234 1.234 0 0 1-.373-.906c0-.356.124-.659.373-.907l.027-.027c.267-.249.573-.373.92-.373.347 0 .653.124.92.373L9.653 4.44c.071.071.134.142.187.213h4.267a.836.836 0 0 1 .16-.213l2.853-2.747c.267-.249.573-.373.92-.373.347 0 .662.151.929.4.267.249.391.551.391.907 0 .355-.124.657-.373.906zM5.333 7.24c-.746.018-1.373.276-1.88.773-.506.498-.769 1.13-.786 1.894v7.52c.017.764.28 1.395.786 1.893.507.498 1.134.756 1.88.773h13.334c.746-.017 1.373-.275 1.88-.773.506-.498.769-1.129.786-1.893v-7.52c-.017-.765-.28-1.396-.786-1.894-.507-.497-1.134-.755-1.88-.773zM8 11.107c.373 0 .684.124.933.373.25.249.383.569.4.96v1.173c-.017.391-.15.711-.4.96-.249.25-.56.374-.933.374s-.684-.125-.933-.374c-.25-.249-.383-.569-.4-.96V12.44c0-.373.129-.689.386-.947.258-.257.574-.386.947-.386zm8 0c.373 0 .684.124.933.373.25.249.383.569.4.96v1.173c-.017.391-.15.711-.4.96-.249.25-.56.374-.933.374s-.684-.125-.933-.374c-.25-.249-.383-.569-.4-.96V12.44c.017-.391.15-.711.4-.96.249-.249.56-.373.933-.373z">
+                        </path>
+                    </svg>
+                    bilibili
+                </a>
+            </div>
+            <p class="copyright">© 2026 YoungSimpleBoy. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="/script.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex/dist/contrib/auto-render.min.js"></script>
+    <script>
+        // ====================
+        // Post 页面客户端 Markdown 渲染
+        // ====================
+
+        let _lastPostInit = 0;
+
+        function getPostId() {
+            const params = new URLSearchParams(window.location.search);
+            return params.get('p') || '';
+        }
+
+        async function getPostMetadata(postId) {
+            try {
+                const response = await fetch('/index.html');
+                const html = await response.text();
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                const articles = doc.querySelectorAll('.post-item');
+                for (const article of articles) {
+                    const link = article.querySelector('.post-title a');
+                    if (!link) continue;
+                    const href = link.getAttribute('href') || '';
+                    if (href.includes(postId)) {
+                        const time = article.querySelector('time');
+                        const category = article.querySelector('.post-category');
+                        const tags = article.querySelectorAll('.post-tags .tag');
+                        const excerpt = article.querySelector('.post-excerpt');
+                        return {
+                            date: time ? time.getAttribute('datetime') || '' : '',
+                            dateText: time ? time.textContent.trim() : '',
+                            category: category ? category.textContent.trim() : '',
+                            tags: Array.from(tags).map(t => t.textContent.trim()),
+                            excerpt: excerpt ? excerpt.textContent.trim() : ''
+                        };
+                    }
+                }
+            } catch (e) {
+                console.warn('无法获取文章元数据:', e);
+            }
+            return null;
+        }
+
+        function protectMath(md) {
+            const blocks = [];
+            let i = 0;
+            // 保护 $$...$$ 块级公式
+            let result = md.replace(/\$\$([\s\S]*?)\$\$/g, (_, math) => {
+                const id = i++;
+                blocks.push({ type: 'display', math: math.trim() });
+                return `\x00MATHBLOCK${id}\x00`;
+            });
+            // 保护 $...$ 内联公式
+            result = result.replace(/(?<!\$)\$(?!\$)([^$\n]+?)(?<!\$)\$(?!\$)/g, (_, math) => {
+                const id = i++;
+                blocks.push({ type: 'inline', math: math.trim() });
+                return `\x00MATHINLINE${id}\x00`;
+            });
+            return { text: result, blocks };
+        }
+
+        function restoreMath(html, blocks) {
+            // 恢复时不需要额外包裹，KaTeX auto-render 会处理
+            let result = html;
+            blocks.forEach((block, idx) => {
+                if (block.type === 'display') {
+                    result = result.replace(`\x00MATHBLOCK${idx}\x00`, `$$${block.math}$$`);
+                } else {
+                    result = result.replace(`\x00MATHINLINE${idx}\x00`, `$${block.math}$`);
+                }
+            });
+            return result;
+        }
+
+        function stripTitleFromMarkdown(md) {
+            // 提取第一个 # 标题，返回标题文本和去除标题后的正文
+            const match = md.match(/^#\s+(.+?)[\r\n]+/);
+            if (match) {
+                return {
+                    title: match[1].trim(),
+                    body: md.substring(match[0].length).trim()
+                };
+            }
+            return { title: '', body: md };
+        }
+
+        function renderMarkdown(md) {
+            marked.setOptions({
+                breaks: false,
+                gfm: true
+            });
+            const { text: protectedText, blocks } = protectMath(md);
+            let html = marked.parse(protectedText);
+            html = restoreMath(html, blocks);
+            return html;
+        }
+
+        function renderKaTeX(element) {
+            try {
+                renderMathInElement(element, {
+                    delimiters: [
+                        { left: '$$', right: '$$', display: true },
+                        { left: '$', right: '$', display: false }
+                    ],
+                    throwOnError: false,
+                    strict: false,
+                    trust: true
+                });
+            } catch (e) {
+                console.warn('KaTeX 渲染出错:', e);
+            }
+        }
+
+        async function initPostPage() {
+            // 防重复调用（直接访问 + Barba afterEnter 可能同时触发）
+            const now = Date.now();
+            if (now - _lastPostInit < 300) return;
+            _lastPostInit = now;
+
+            const postId = getPostId();
+            if (!postId) {
+                document.getElementById('postTitle').textContent = '未指定文章';
+                document.getElementById('postBody').innerHTML = '<p>请在 URL 中指定文章参数，例如 <code>?p=p2026041801</code></p>';
+                document.title = '未找到文章 - YoungSimpleBoy 的博客';
+                return;
+            }
+
+            const [metadata, mdResponse] = await Promise.all([
+                getPostMetadata(postId),
+                fetch(`/markdown/posts/${postId}.md`).catch(() => null)
+            ]);
+
+            if (!mdResponse || !mdResponse.ok) {
+                document.getElementById('postTitle').textContent = '文章未找到';
+                document.getElementById('postBody').innerHTML =
+                    `<p>文章 <code>${postId}.md</code> 未找到。请检查文件是否存在于 <code>markdown/posts/</code> 目录中。</p>`;
+                document.title = '文章未找到 - YoungSimpleBoy 的博客';
+                return;
+            }
+
+            const markdown = await mdResponse.text();
+            const { title, body } = stripTitleFromMarkdown(markdown);
+
+            // 设置页面标题
+            document.title = `${title} - YoungSimpleBoy 的博客`;
+
+            // 设置文章大标题
+            document.getElementById('postTitle').textContent = title;
+
+            // 设置元数据
+            if (metadata) {
+                const dateEl = document.getElementById('postDate');
+                dateEl.setAttribute('datetime', metadata.date);
+                dateEl.textContent = metadata.dateText;
+                document.getElementById('postCategory').textContent = metadata.category;
+
+                const tagsContainer = document.getElementById('postTags');
+                tagsContainer.innerHTML = '';
+                metadata.tags.forEach(tag => {
+                    const span = document.createElement('span');
+                    span.className = 'tag';
+                    span.textContent = tag;
+                    tagsContainer.appendChild(span);
+                });
+            }
+
+            // 渲染 Markdown 正文
+            const bodyHtml = renderMarkdown(body);
+            document.getElementById('postBody').innerHTML = bodyHtml;
+
+            // 渲染 KaTeX 公式
+            renderKaTeX(document.getElementById('postBody'));
+
+            // 初始化图片 Lightbox
+            if (typeof initLightbox === 'function') {
+                initLightbox();
+            }
+
+            // 回到顶部
+            window.scrollTo(0, 0);
+        }
+
+        // 首次加载（直接访问 post.html）
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initPostPage);
+        } else {
+            initPostPage();
+        }
+    </script>
+</body>
+
+</html>
