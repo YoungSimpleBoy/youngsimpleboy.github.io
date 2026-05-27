@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Marker PDF 本地转换面板，调用 marker_single 将 PDF 转为 Markdown、HTML 或 JSON。">
+    <title>Marker PDF Studio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./styles.css?v=20260508b">
+    <script>
+        (function () {
+            if (localStorage.getItem("marker-pdf-theme") === "light") {
+                document.documentElement.classList.add("light");
+            }
+        })();
+    </script>
+</head>
+<body>
+    <div class="ambient ambient-a"></div>
+    <div class="ambient ambient-b"></div>
+
+    <header class="topbar shell">
+        <div>
+            <p class="eyebrow">LOCAL BRIDGE</p>
+            <h1>Marker PDF Studio</h1>
+            <p class="subtitle">在浏览器里调本地 marker_single，把 PDF 转成 Markdown。</p>
+        </div>
+        <div class="topbar-actions">
+            <div class="status-pill offline" id="serviceStatus">服务检测中</div>
+            <button class="theme-toggle" id="themeToggle" type="button" aria-label="切换主题" title="切换主题">
+                <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="5"></circle>
+                    <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
+                </svg>
+                <svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <main class="shell layout">
+        <aside class="sidebar">
+            <section class="card accent-card">
+                <p class="section-kicker">上传</p>
+                <h2>选择 PDF</h2>
+                <input id="fileInput" type="file" accept="application/pdf,.pdf" hidden>
+                <button id="pickFileBtn" class="ghost-btn" type="button">选择文件</button>
+                <button id="clearFileBtn" class="text-btn" type="button">清空当前文件</button>
+                <label id="dropZone" class="dropzone" for="fileInput">
+                    <span class="dropzone-title">拖拽 PDF 到这里</span>
+                    <span class="dropzone-hint">或点击上方按钮，从本地选择单个文件</span>
+                </label>
+                <div class="file-meta">
+                    <p id="selectedFileName">尚未选择 PDF</p>
+                    <p id="selectedFileInfo" class="muted">支持单文件转换，结果会生成到输出目录下的同名文件夹。</p>
+                </div>
+            </section>
+
+            <section class="card">
+                <p class="section-kicker">参数</p>
+                <h2>转换设置</h2>
+                <label class="field">
+                    <span>输出根目录</span>
+                    <input id="outputDirInput" type="text" placeholder="例如 G:/pdf_output">
+                    <small>留空则使用本工具目录下的 output 文件夹。</small>
+                </label>
+
+                <div class="field-grid">
+                    <label class="field">
+                        <span>输出格式</span>
+                        <select id="outputFormatSelect">
+                            <option value="markdown" selected>Markdown</option>
+                            <option value="html">HTML</option>
+                            <option value="json">JSON</option>
+                        </select>
+                    </label>
+                    <label class="field">
+                        <span>页码范围</span>
+                        <input id="pageRangeInput" type="text" placeholder="例如 0,5-8,12">
+                    </label>
+                </div>
+
+                <label class="field">
+                    <span>处理模式</span>
+                    <select id="processingModeSelect">
+                        <option value="balanced" selected>平衡模式</option>
+                        <option value="text">文本优先</option>
+                        <option value="quality">高质量</option>
+                    </select>
+                    <small id="processingModeHint">平衡模式会降低页面渲染 DPI 并使用更轻的 OCR，通常能明显减轻硬件负担。</small>
+                </label>
+
+                <div class="check-grid">
+                    <label class="check-item"><input id="forceOcrInput" type="checkbox"> 强制 OCR</label>
+                    <label class="check-item"><input id="paginateOutputInput" type="checkbox"> 输出插入分页标记</label>
+                    <label class="check-item"><input id="disableImageExtractionInput" type="checkbox"> 禁用图片提取</label>
+                    <label class="check-item"><input id="disableMultiprocessingInput" type="checkbox" checked> 禁用多进程</label>
+                    <label class="check-item"><input id="debugInput" type="checkbox"> Debug 输出</label>
+                </div>
+
+                <div class="action-row">
+                    <button id="convertBtn" class="primary-btn" type="button">开始转换</button>
+                    <button id="refreshJobsBtn" class="ghost-btn" type="button">刷新任务</button>
+                </div>
+                <p class="muted" id="serviceMeta">等待服务状态...</p>
+            </section>
+
+            <section class="card">
+                <p class="section-kicker">说明</p>
+                <h2>使用提示</h2>
+                <ul class="notes">
+                    <li>先用页码范围 0-2 试跑，再决定是否全文转换。</li>
+                    <li>页码范围遵循 marker 规则，通常从 0 开始。</li>
+                    <li>“文本优先”适合可复制文字的 PDF，会自动跳过 OCR 和图片提取。</li>
+                    <li>输出目录下会生成“PDF 文件名/文件名.md”这类结构。</li>
+                    <li>转换过程依赖本机已安装的 marker_single。</li>
+                </ul>
+            </section>
+        </aside>
+
+        <section class="main-panel">
+            <section class="hero card">
+                <div>
+                    <p class="section-kicker">当前任务</p>
+                    <h2 id="jobHeadline">尚未开始转换</h2>
+                    <p id="jobSummary" class="muted">选中 PDF 后点击开始转换，右侧会持续刷新日志。</p>
+                </div>
+                <div class="hero-metrics">
+                    <div>
+                        <span>状态</span>
+                        <strong id="jobStatusText">IDLE</strong>
+                    </div>
+                    <div>
+                        <span>任务 ID</span>
+                        <strong id="jobIdText">-</strong>
+                    </div>
+                    <div>
+                        <span>输出格式</span>
+                        <strong id="jobFormatText">-</strong>
+                    </div>
+                </div>
+            </section>
+
+            <div class="content-grid">
+                <section class="card tall-card">
+                    <div class="card-head">
+                        <div>
+                            <p class="section-kicker">日志</p>
+                            <h2>实时输出</h2>
+                        </div>
+                        <button id="copyLogsBtn" class="text-btn" type="button">复制日志</button>
+                    </div>
+                    <pre id="logPanel" class="log-panel">日志会显示在这里。</pre>
+                </section>
+
+                <section class="stack">
+                    <section class="card">
+                        <p class="section-kicker">结果</p>
+                        <h2>输出信息</h2>
+                        <div class="result-list" id="resultList">
+                            <p class="muted">尚无转换结果。</p>
+                        </div>
+                        <div class="action-row compact-actions">
+                            <a id="downloadLink" class="primary-btn disabled-link" href="#" aria-disabled="true">下载结果 ZIP</a>
+                            <button id="openOutputBtn" class="ghost-btn" type="button" disabled>打开输出目录</button>
+                        </div>
+                        <pre id="commandPreview" class="command-preview">命令预览会显示在这里。</pre>
+                    </section>
+
+                    <section class="card">
+                        <div class="card-head">
+                            <div>
+                                <p class="section-kicker">历史</p>
+                                <h2>最近任务</h2>
+                            </div>
+                            <button id="clearCurrentBtn" class="text-btn" type="button">清空当前视图</button>
+                        </div>
+                        <div id="recentJobs" class="recent-jobs">
+                            <p class="muted">还没有任务记录。</p>
+                        </div>
+                    </section>
+                </section>
+            </div>
+        </section>
+    </main>
+
+    <footer class="shell footer">
+        <div class="footer-links">
+            <a href="../../index.html" target="_blank" rel="noopener">个人主页</a>
+            <a href="https://github.com/YoungSimpleBoy" target="_blank" rel="noopener">GitHub</a>
+            <a href="mailto:2404716575@qq.com" target="_blank" rel="noopener">E-mail</a>
+        </div>
+        <p>Marker PDF Studio 仅监听本机 localhost:8765。</p>
+    </footer>
+
+    <script src="./app.js?v=20260508b" defer></script>
+</body>
+</html>
