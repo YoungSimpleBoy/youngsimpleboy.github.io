@@ -238,30 +238,267 @@ function getVerovio() {
 }
 
 // ==================== MIDI → MusicXML ====================
-const DIVISIONS = 4; // divisions per quarter note (16th-note resolution)
-
-// Standard note durations in divisions (descending), for greedy decomposition
-const STD_DURS = [
-  { d: 16, type: 'whole', dot: false },
-  { d: 12, type: 'half', dot: true },
-  { d: 8, type: 'half', dot: false },
-  { d: 6, type: 'quarter', dot: true },
-  { d: 4, type: 'quarter', dot: false },
-  { d: 3, type: 'eighth', dot: true },
-  { d: 2, type: 'eighth', dot: false },
-  { d: 1, type: '16th', dot: false },
+const NOTE_TYPES = [
+  { type: 'whole', quarters: 4 },
+  { type: 'half', quarters: 2 },
+  { type: 'quarter', quarters: 1 },
+  { type: 'eighth', quarters: 1 / 2 },
+  { type: '16th', quarters: 1 / 4 },
+  { type: '32nd', quarters: 1 / 8 },
+  { type: '64th', quarters: 1 / 16 },
+  { type: '128th', quarters: 1 / 32 },
+  { type: '256th', quarters: 1 / 64 },
 ];
 
-function decompDuration(dur) {
-  const parts = [];
-  let rem = dur;
-  while (rem > 0) {
-    const fit = STD_DURS.find(s => s.d <= rem);
-    if (!fit) break;
-    parts.push(fit);
-    rem -= fit.d;
+function isIntegerDuration(value) {
+  return Math.abs(value - Math.round(value)) < 1e-8;
+}
+
+function buildDurationCatalog(divisions) {
+  const catalog = [];
+  for (const noteType of NOTE_TYPES) {
+    const normal = divisions * noteType.quarters;
+    if (isIntegerDuration(normal)) {
+      catalog.push({
+        d: Math.round(normal),
+        type: noteType.type,
+        dot: false,
+        timeModification: null,
+      });
+      const dotted = normal * 1.5;
+      if (isIntegerDuration(dotted)) {
+        catalog.push({
+          d: Math.round(dotted),
+          type: noteType.type,
+          dot: true,
+          timeModification: null,
+        });
+      }
+    }
+
+    const triplet = normal * 2 / 3;
+    if (isIntegerDuration(triplet)) {
+      catalog.push({
+        d: Math.round(triplet),
+        type: noteType.type,
+        dot: false,
+        timeModification: { actual: 3, normal: 2 },
+      });
+    }
   }
-  return parts;
+  return catalog
+    .filter(item => item.d > 0)
+    .sort((a, b) =>
+      b.d - a.d ||
+      Number(Boolean(a.timeModification)) - Number(Boolean(b.timeModification)) ||
+      Number(a.dot) - Number(b.dot)
+    );
+}
+
+function decompDuration(dur, durationCatalog) {
+  const best = new Array(dur + 1).fill(null);
+  best[0] = { score: 0, parts: [] };
+
+  for (let value = 1; value <= dur; value++) {
+    for (const item of durationCatalog) {
+      if (item.d > value || !best[value - item.d]) continue;
+      const score = best[value - item.d].score +
+        100 +
+        (item.timeModification ? 5 : 0) +
+        (item.dot ? 0.1 : 0);
+      if (!best[value] || score < best[value].score) {
+        best[value] = {
+          score,
+          parts: [...best[value - item.d].parts, item],
+        };
+      }
+    }
+  }
+  return best[dur]?.parts || [];
+}
+
+function subdivisionEvidence(trackNotes, ppq, subdivision, coarserDivision) {
+  const step = ppq / subdivision;
+  const looseTolerance = Math.max(2, step * 0.12);
+  const strictTolerance = Math.max(1, step * 0.04);
+  const slots = new Map();
+
+  for (const note of trackNotes) {
+    const slot = Math.round(note.ticks / step);
+    const error = Math.abs(note.ticks - slot * step);
+    if (error > looseTolerance) continue;
+    const durationMatches = Math.abs(note.durationTicks - step) <=
+      Math.max(2, step * 0.18);
+    const existing = slots.get(slot);
+    if (!existing || error < existing.error) {
+      slots.set(slot, { error, durationMatches });
+    } else if (durationMatches) {
+      existing.durationMatches = true;
+    }
+  }
+
+  const sorted = [...slots.keys()].sort((a, b) => a - b);
+  let strongRuns = 0;
+  let looseRuns = 0;
+  let maxRun = 0;
+  let novelSlotsInRuns = 0;
+  const regions = [];
+
+  for (let i = 0; i < sorted.length;) {
+    let end = i + 1;
+    while (end < sorted.length && sorted[end] === sorted[end - 1] + 1) end++;
+    const run = sorted.slice(i, end);
+    const novelSlots = run.filter(slot => {
+      const coarserPos = slot * coarserDivision / subdivision;
+      return Math.abs(coarserPos - Math.round(coarserPos)) > 1e-8;
+    });
+    const durationMatches = run.reduce(
+      (count, slot) => count + Number(slots.get(slot).durationMatches),
+      0
+    );
+    if (run.length >= 3 && novelSlots.length > 0 &&
+        (durationMatches >= 2 || run.length >= 4)) {
+      looseRuns++;
+      novelSlotsInRuns += novelSlots.length;
+      if (run.every(slot => slots.get(slot).error <= strictTolerance)) strongRuns++;
+      maxRun = Math.max(maxRun, run.length);
+      regions.push({
+        subdivision,
+        startTick: (run[0] - 0.5) * step,
+        endTick: (run[run.length - 1] + 0.5) * step,
+      });
+    }
+    i = end;
+  }
+
+  return { strongRuns, looseRuns, maxRun, novelSlotsInRuns, regions };
+}
+
+function hasMeaningfulSubdivision(evidence, requireRepeated = false) {
+  if (requireRepeated) {
+    return evidence.strongRuns >= 2 ||
+      evidence.looseRuns >= 3 ||
+      evidence.maxRun >= 5 ||
+      evidence.novelSlotsInRuns >= 8;
+  }
+  return evidence.strongRuns >= 1 ||
+    evidence.looseRuns >= 2 ||
+    evidence.maxRun >= 4 ||
+    evidence.novelSlotsInRuns >= 6;
+}
+
+function rapidSubdivisionRuns(trackNotes, ppq, subdivision) {
+  const step = ppq / subdivision;
+  const onsets = new Map();
+
+  for (const note of trackNotes) {
+    const onset = onsets.get(note.ticks) || {
+      tick: note.ticks,
+      durationMatches: false,
+    };
+    if (Math.abs(note.durationTicks - step) <= Math.max(2, step * 0.25)) {
+      onset.durationMatches = true;
+    }
+    onsets.set(note.ticks, onset);
+  }
+
+  const sorted = [...onsets.values()].sort((a, b) => a.tick - b.tick);
+  const runs = [];
+  let start = 0;
+
+  for (let i = 1; i <= sorted.length; i++) {
+    const gap = i < sorted.length
+      ? sorted[i].tick - sorted[i - 1].tick
+      : Infinity;
+    if (gap >= step * 0.7 && gap <= step * 1.3) continue;
+
+    const run = sorted.slice(start, i);
+    const matchingDurations = run.reduce(
+      (count, onset) => count + Number(onset.durationMatches),
+      0
+    );
+    if (run.length >= 6 &&
+        matchingDurations >= Math.ceil(run.length * 0.6)) {
+      runs.push({
+        startTick: run[0].tick,
+        endTick: run[run.length - 1].tick,
+        length: run.length,
+        averageGap: (run[run.length - 1].tick - run[0].tick) /
+          (run.length - 1),
+      });
+    }
+    start = i;
+  }
+  return runs;
+}
+
+function chooseQuantization(trackNotes, ppq, timeSigEvents) {
+  let binaryDivisions = 4;
+
+  const thirtySecondEvidence = subdivisionEvidence(trackNotes, ppq, 8, 4);
+  if (hasMeaningfulSubdivision(thirtySecondEvidence) ||
+      rapidSubdivisionRuns(trackNotes, ppq, 8).length > 0) {
+    binaryDivisions = 8;
+  }
+
+  const sixtyFourthEvidence = subdivisionEvidence(trackNotes, ppq, 16, 8);
+  const rapidSixtyFourthRuns = rapidSubdivisionRuns(trackNotes, ppq, 16);
+  if (hasMeaningfulSubdivision(sixtyFourthEvidence, true) ||
+      rapidSixtyFourthRuns.some(run =>
+        run.averageGap >= (ppq / 16) * 0.98
+      )) {
+    binaryDivisions = 16;
+  }
+  const fineBinaryRegions = rapidSixtyFourthRuns
+    .filter(run => run.averageGap < (ppq / 16) * 0.98)
+    .map(run => ({
+      subdivision: 32,
+      startTick: run.startTick - ppq / 16,
+      endTick: run.endTick + ppq / 8,
+    }));
+
+  for (const ts of timeSigEvents || []) {
+    const beatType = ts.timeSignature?.[1] || 4;
+    while ((binaryDivisions * 4) % beatType !== 0 && binaryDivisions < 32) {
+      binaryDivisions *= 2;
+    }
+  }
+
+  const tripletSubdivisions = [3, 6, 12];
+  const detectedTripletSubdivisions = [];
+  const tripletRegions = [];
+  for (const subdivision of tripletSubdivisions) {
+    const evidence = subdivisionEvidence(
+      trackNotes,
+      ppq,
+      subdivision,
+      binaryDivisions
+    );
+    if (hasMeaningfulSubdivision(evidence)) {
+      detectedTripletSubdivisions.push(subdivision);
+      tripletRegions.push(...evidence.regions);
+      if (subdivision === 12) binaryDivisions = Math.max(binaryDivisions, 8);
+    }
+  }
+
+  const hasTriplets = detectedTripletSubdivisions.length > 0;
+  const resolutionDivisions = fineBinaryRegions.length > 0
+    ? Math.max(binaryDivisions, 32)
+    : binaryDivisions;
+  return {
+    divisions: resolutionDivisions * (hasTriplets ? 3 : 1),
+    binaryDivisions,
+    subdivisions: [
+      ...new Set([
+        binaryDivisions,
+        ...fineBinaryRegions.map(region => region.subdivision),
+        ...detectedTripletSubdivisions,
+      ]),
+    ],
+    subdivisionRegions: [...fineBinaryRegions, ...tripletRegions],
+    tripletRegions,
+    hasTriplets,
+  };
 }
 
 // Key-aware enharmonic spelling: flat keys → flats, sharp keys → sharps
@@ -292,22 +529,68 @@ function bestClef(notes) {
   return avg >= 55 ? { sign: 'G', line: 2 } : { sign: 'F', line: 4 };
 }
 
-// Snap note onsets/offsets to the quantization grid
-function quantizeNotes(trackNotes, ppq) {
-  const grid = ppq / DIVISIONS;
+function isSubdivisionActiveAtTick(subdivision, tick, quantization) {
+  if (subdivision === quantization.binaryDivisions) return true;
+  const regions = quantization.subdivisionRegions ||
+    quantization.tripletRegions ||
+    [];
+  if (regions.length === 0) return true;
+  return regions.some(region =>
+    region.subdivision === subdivision &&
+    tick >= region.startTick &&
+    tick <= region.endTick
+  );
+}
+
+function snapTickToDivision(tick, ppq, quantization) {
+  const rawDivision = tick * quantization.divisions / ppq;
+  let bestDivision = 0;
+  let bestError = Infinity;
+  let bestStep = 0;
+
+  for (const subdivision of quantization.subdivisions) {
+    if (!isSubdivisionActiveAtTick(subdivision, tick, quantization)) continue;
+    const step = quantization.divisions / subdivision;
+    const candidate = Math.round(rawDivision / step) * step;
+    const error = Math.abs(candidate - rawDivision);
+    if (error < bestError - 1e-8 ||
+        (Math.abs(error - bestError) <= 1e-8 && step > bestStep)) {
+      bestDivision = candidate;
+      bestError = error;
+      bestStep = step;
+    }
+  }
+  return Math.round(bestDivision);
+}
+
+// Snap note onsets/offsets only to rhythm grids supported by the MIDI evidence.
+function quantizeNotes(trackNotes, ppq, quantization) {
   return trackNotes
     .map(n => {
-      const qs = Math.round(n.ticks / grid);
-      const qe = Math.round((n.ticks + n.durationTicks) / grid);
-      return { qStart: qs, qEnd: Math.max(qe, qs + 1), midi: n.midi };
+      const qs = snapTickToDivision(n.ticks, ppq, quantization);
+      const qe = snapTickToDivision(
+        n.ticks + n.durationTicks,
+        ppq,
+        quantization
+      );
+      const minStep = Math.min(...quantization.subdivisions
+        .filter(subdivision =>
+          isSubdivisionActiveAtTick(subdivision, n.ticks, quantization)
+        )
+        .map(subdivision => quantization.divisions / subdivision));
+      return {
+        qStart: qs,
+        qEnd: Math.max(qe, qs + minStep),
+        midi: n.midi,
+      };
     })
     .sort((a, b) => a.qStart - b.qStart || a.midi - b.midi);
 }
 
 // Build measure map that respects mid-piece time-signature changes
-function buildMeasureMap(timeSigEvents, ppq, totalDivisions) {
+function buildMeasureMap(timeSigEvents, ppq, totalDivisions, divisions) {
   const tsList = (timeSigEvents || []).map(ts => ({
-    divStart: Math.round(ts.ticks * DIVISIONS / ppq),
+    divStart: Math.round(ts.ticks * divisions / ppq),
     beats: ts.timeSignature[0],
     beatType: ts.timeSignature[1],
   }));
@@ -320,7 +603,7 @@ function buildMeasureMap(timeSigEvents, ppq, totalDivisions) {
   while (pos <= totalDivisions) {
     while (tsIdx < tsList.length - 1 && tsList[tsIdx + 1].divStart <= pos) tsIdx++;
     const { beats, beatType } = tsList[tsIdx];
-    const mLen = DIVISIONS * beats * 4 / beatType;
+    const mLen = divisions * beats * 4 / beatType;
     const tsChanged = measures.length === 0 ||
       measures[measures.length - 1].beats !== beats ||
       measures[measures.length - 1].beatType !== beatType;
@@ -331,9 +614,9 @@ function buildMeasureMap(timeSigEvents, ppq, totalDivisions) {
 }
 
 // Build tempo events in division coordinates
-function buildTempoMap(tempoEvents, ppq) {
+function buildTempoMap(tempoEvents, ppq, divisions) {
   const map = (tempoEvents || []).map(t => ({
-    divStart: Math.round((t.ticks || 0) * DIVISIONS / ppq),
+    divStart: Math.round((t.ticks || 0) * divisions / ppq),
     bpm: t.bpm,
   }));
   if (map.length === 0) map.push({ divStart: 0, bpm: 120 });
@@ -342,7 +625,7 @@ function buildTempoMap(tempoEvents, ppq) {
 
 // Convert a quantized division position to milliseconds using the tempo map
 // This produces the EXACT same timeline Verovio uses internally
-function divisionToMs(divPos, tempos) {
+function divisionToMs(divPos, tempos, divisions) {
   let ms = 0, pos = 0, tidx = 0;
   const sorted = tempos.length > 1
     ? [...tempos].sort((a, b) => a.divStart - b.divStart)
@@ -351,8 +634,8 @@ function divisionToMs(divPos, tempos) {
     while (tidx < sorted.length - 1 && sorted[tidx + 1].divStart <= pos) tidx++;
     const nextChange = (tidx < sorted.length - 1) ? sorted[tidx + 1].divStart : Infinity;
     const end = Math.min(divPos, nextChange);
-    // divisions / DIVISIONS = quarter notes; quarter notes * 60000/bpm = ms
-    ms += ((end - pos) / DIVISIONS) * (60000 / sorted[tidx].bpm);
+    // divisions / selected grid = quarter notes; quarter notes * 60000/bpm = ms
+    ms += ((end - pos) / divisions) * (60000 / sorted[tidx].bpm);
     pos = end;
   }
   return ms;
@@ -362,13 +645,16 @@ function divisionToMs(divPos, tempos) {
 // Build a piecewise mapping between original MIDI time (seconds) and Verovio's
 // internal time by computing divisionToMs for each note's quantized position.
 // This is deterministic — no heuristic matching needed.
-function buildTimeCalibration(trackNotes, ppq, tempoEvents) {
-  const grid = ppq / DIVISIONS;
-  const tempos = buildTempoMap(tempoEvents, ppq);
+function buildTimeCalibration(trackNotes, ppq, tempoEvents, quantization) {
+  const tempos = buildTempoMap(
+    tempoEvents,
+    ppq,
+    quantization.divisions
+  );
   const raw = [{ midiSec: 0, vrvSec: 0 }];
   for (const note of trackNotes) {
-    const qStart = Math.round(note.ticks / grid);
-    const vrvMs = divisionToMs(qStart, tempos);
+    const qStart = snapTickToDivision(note.ticks, ppq, quantization);
+    const vrvMs = divisionToMs(qStart, tempos, quantization.divisions);
     raw.push({ midiSec: note.time, vrvSec: vrvMs / 1000 });
   }
   raw.sort((a, b) => a.midiSec - b.midiSec);
@@ -457,73 +743,62 @@ function sliceAtMeasures(notes, measures) {
 }
 
 // ---- Voice Separation ----
-// Split overlapping notes into up to 2 independent voices so that
-// long sustained notes are not chopped by short accompaniment notes.
+// MusicXML voices are sequential timelines, so notes that overlap cannot share
+// a voice. Allocate as many voices as needed and keep equal-duration notes with
+// the same onset together as a chord.
 function separateVoices(measureNotes) {
-  if (measureNotes.length === 0) return [[], []];
+  if (measureNotes.length === 0) return [[]];
 
-  const onsets = new Map();
-  for (const n of measureNotes) {
-    if (!onsets.has(n.qStart)) onsets.set(n.qStart, []);
-    onsets.get(n.qStart).push(n);
+  const chordGroups = new Map();
+  for (const note of measureNotes) {
+    const key = `${note.qStart}:${note.qEnd}`;
+    if (!chordGroups.has(key)) chordGroups.set(key, []);
+    chordGroups.get(key).push(note);
   }
 
-  const v1 = [], v2 = [];
-  let v1End = -Infinity, v2End = -Infinity;
-  const sortedTimes = [...onsets.keys()].sort((a, b) => a - b);
+  const groups = [...chordGroups.values()].sort((a, b) => {
+    const startDiff = a[0].qStart - b[0].qStart;
+    if (startDiff !== 0) return startDiff;
+    return b[0].qEnd - a[0].qEnd;
+  });
 
-  for (const t of sortedTimes) {
-    const group = onsets.get(t);
-    const durSet = new Set(group.map(n => n.qEnd - n.qStart));
+  const voices = [];
+  const voiceEnds = [];
 
-    if (durSet.size === 1) {
-      // All notes share the same duration → chord in one voice
-      if (t >= v1End) {
-        v1.push(...group);
-        v1End = Math.max(v1End, ...group.map(n => n.qEnd));
-      } else if (t >= v2End) {
-        v2.push(...group);
-        v2End = Math.max(v2End, ...group.map(n => n.qEnd));
-      } else {
-        v1.push(...group);
-        v1End = Math.max(v1End, ...group.map(n => n.qEnd));
-      }
-    } else {
-      // Different durations → longest notes ⇒ voice 1, shorter ⇒ voice 2
-      const maxDur = Math.max(...[...durSet]);
-      for (const n of group) {
-        if ((n.qEnd - n.qStart) === maxDur) {
-          v1.push(n);
-          v1End = Math.max(v1End, n.qEnd);
-        } else {
-          v2.push(n);
-          v2End = Math.max(v2End, n.qEnd);
-        }
-      }
+  for (const group of groups) {
+    const start = group[0].qStart;
+    const end = group[0].qEnd;
+    let voiceIndex = voiceEnds.findIndex(voiceEnd => voiceEnd <= start);
+
+    if (voiceIndex === -1) {
+      voiceIndex = voices.length;
+      voices.push([]);
+      voiceEnds.push(-Infinity);
     }
+
+    voices[voiceIndex].push(...group);
+    voiceEnds[voiceIndex] = end;
   }
-  return [v1, v2];
+
+  return voices;
 }
 
 // ---- Single-Voice XML Emitter ----
-// tempoEvents: optional array of {divStart, bpm} for mid-measure tempo changes (voice 1 only)
-function emitVoiceXML(voiceNotes, mStart, mLen, voiceNum, staffNum, keyFifths, forceStem, tempoEvents) {
+function emitVoiceXML(
+  voiceNotes,
+  mStart,
+  mLen,
+  voiceNum,
+  staffNum,
+  keyFifths,
+  forceStem,
+  durationCatalog
+) {
   const sorted = voiceNotes
     .filter(n => n.qStart >= mStart && n.qStart < mStart + mLen)
     .sort((a, b) => a.qStart - b.qStart || a.midi - b.midi);
   let xml = '';
   let cursor = 0;
-  const mTempos = tempoEvents || [];
-  let tIdx = 0;
-
-  // Emit <direction><sound tempo> for all tempo events up to (and including) absPos
-  function emitTemposUpTo(absPos) {
-    while (tIdx < mTempos.length && mTempos[tIdx].divStart <= absPos) {
-      const t = mTempos[tIdx++];
-      xml += `<direction placement="above"><direction-type><words/></direction-type>`;
-      xml += `<sound tempo="${t.bpm}"/></direction>`;
-    }
-  }
 
   function noteXML(opts) {
     let s = '<note>';
@@ -542,6 +817,12 @@ function emitVoiceXML(voiceNotes, mStart, mLen, voiceNum, staffNum, keyFifths, f
     s += `<voice>${voiceNum}</voice>`;
     s += `<type>${opts.type}</type>`;
     if (opts.dot) s += '<dot/>';
+    if (opts.timeModification) {
+      s += '<time-modification>';
+      s += `<actual-notes>${opts.timeModification.actual}</actual-notes>`;
+      s += `<normal-notes>${opts.timeModification.normal}</normal-notes>`;
+      s += '</time-modification>';
+    }
     if (forceStem && !opts.isRest) {
       s += (voiceNum % 2 === 1) ? '<stem>up</stem>' : '<stem>down</stem>';
     }
@@ -560,16 +841,21 @@ function emitVoiceXML(voiceNotes, mStart, mLen, voiceNum, staffNum, keyFifths, f
   while (i < sorted.length) {
     const pos = sorted[i].qStart - mStart;
     if (cursor < pos) {
-      for (const r of decompDuration(pos - cursor))
-        xml += noteXML({ isRest: true, d: r.d, type: r.type, dot: r.dot });
+      for (const r of decompDuration(pos - cursor, durationCatalog)) {
+        xml += noteXML({
+          isRest: true,
+          d: r.d,
+          type: r.type,
+          dot: r.dot,
+          timeModification: r.timeModification,
+        });
+      }
       cursor = pos;
     }
-    // Emit any pending tempo changes at or before this note position
-    emitTemposUpTo(mStart + pos);
     const chord = [];
     while (i < sorted.length && sorted[i].qStart - mStart === pos) chord.push(sorted[i++]);
     const chordDur = Math.min(...chord.map(n => n.qEnd - n.qStart));
-    const parts = decompDuration(chordDur);
+    const parts = decompDuration(chordDur, durationCatalog);
     for (let dp = 0; dp < parts.length; dp++) {
       for (let ci = 0; ci < chord.length; ci++) {
         const n = chord[ci];
@@ -578,6 +864,7 @@ function emitVoiceXML(voiceNotes, mStart, mLen, voiceNum, staffNum, keyFifths, f
           d: parts[dp].d,
           type: parts[dp].type,
           dot: parts[dp].dot,
+          timeModification: parts[dp].timeModification,
           chord: ci > 0,
           tieStop: dp === 0 ? n.tieStop : true,
           tieStart: dp === parts.length - 1 ? n.tieStart : true,
@@ -586,19 +873,31 @@ function emitVoiceXML(voiceNotes, mStart, mLen, voiceNum, staffNum, keyFifths, f
     }
     cursor = pos + chordDur;
   }
-  // Emit any remaining tempo changes after last note
-  emitTemposUpTo(mStart + mLen);
   if (cursor < mLen) {
-    for (const r of decompDuration(mLen - cursor))
-      xml += noteXML({ isRest: true, d: r.d, type: r.type, dot: r.dot });
+    for (const r of decompDuration(mLen - cursor, durationCatalog)) {
+      xml += noteXML({
+        isRest: true,
+        d: r.d,
+        type: r.type,
+        dot: r.dot,
+        timeModification: r.timeModification,
+      });
+    }
   }
   return xml;
 }
 
 // ---- Main Converter ----
-function midiToMusicXML(midi, trackIdx, isPiano, splitNote, title) {
+function midiToMusicXML(midi, trackIdx, isPiano, splitNote, title, quantization) {
   const ppq = midi.header.ppq;
   const track = midi.tracks[trackIdx];
+  const selectedQuantization = quantization || chooseQuantization(
+    track.notes,
+    ppq,
+    midi.header.timeSignatures
+  );
+  const divisions = selectedQuantization.divisions;
+  const durationCatalog = buildDurationCatalog(divisions);
 
   // Key signature
   const keySigs = midi.header.keySignatures || [];
@@ -618,13 +917,18 @@ function midiToMusicXML(midi, trackIdx, isPiano, splitNote, title) {
   }
 
   // Quantize
-  const qAll = quantizeNotes(track.notes, ppq);
+  const qAll = quantizeNotes(track.notes, ppq, selectedQuantization);
   const maxEnd = qAll.reduce((m, n) => Math.max(m, n.qEnd), 0);
 
   // Measure map (dynamic time signatures)
-  const measures = buildMeasureMap(midi.header.timeSignatures, ppq, maxEnd);
+  const measures = buildMeasureMap(
+    midi.header.timeSignatures,
+    ppq,
+    maxEnd,
+    divisions
+  );
   // Tempo map
-  const tempos = buildTempoMap(midi.header.tempos, ppq);
+  const tempos = buildTempoMap(midi.header.tempos, ppq, divisions);
 
   // Split for piano or single staff
   const trebleQ = isPiano ? qAll.filter(n => n.midi >= splitNote) : qAll;
@@ -657,7 +961,7 @@ function midiToMusicXML(midi, trackIdx, isPiano, splitNote, title) {
     // Attributes: first measure or time-signature change
     if (mi === 0 || m.tsChanged) {
       x += '<attributes>';
-      if (mi === 0) x += `<divisions>${DIVISIONS}</divisions>`;
+      if (mi === 0) x += `<divisions>${divisions}</divisions>`;
       if (mi === 0) {
         x += `<key><fifths>${keyFifths}</fifths>`;
         if (keyMode === 'minor') x += '<mode>minor</mode>';
@@ -685,49 +989,81 @@ function midiToMusicXML(midi, trackIdx, isPiano, splitNote, title) {
     }
     temposInMeasure.sort((a, b) => a.divStart - b.divStart);
 
-    // Emit measure-start tempos as visible metronome markings
-    const startTempos = temposInMeasure.filter(t => t.divStart === m.start);
-    const midTempos = temposInMeasure.filter(t => t.divStart > m.start);
-    for (const t of startTempos) {
+    // Emit tempo directions before the notes. MusicXML offsets are relative to
+    // the current measure location, so tempo changes remain exact even when
+    // they occur inside a sustained note.
+    for (const t of temposInMeasure) {
+      const offset = t.divStart - m.start;
       x += '<direction placement="above"><direction-type>';
-      x += `<metronome><beat-unit>quarter</beat-unit><per-minute>${Math.round(t.bpm)}</per-minute></metronome>`;
-      x += `</direction-type><sound tempo="${t.bpm}"/></direction>`;
+      if (offset === 0) {
+        x += `<metronome><beat-unit>quarter</beat-unit><per-minute>${Math.round(t.bpm)}</per-minute></metronome>`;
+      } else {
+        x += '<words/>';
+      }
+      x += '</direction-type>';
+      if (offset > 0) x += `<offset sound="yes">${offset}</offset>`;
+      x += `<sound tempo="${t.bpm}"/></direction>`;
     }
 
     // --- Write voices ---
-    // Pass mid-measure tempos to voice 1 only (first voice emitted)
     if (isPiano) {
-      // Treble staff (voices 1 & 2)
+      // Treble staff
       const tNotes = trebleSliced.filter(n =>
         n.qStart >= m.start && n.qStart < m.start + m.len);
-      const [tv1, tv2] = separateVoices(tNotes);
-      const tMulti = tv2.length > 0;
-      x += emitVoiceXML(tv1, m.start, m.len, 1, 1, keyFifths, tMulti, midTempos);
-      if (tMulti) {
-        x += `<backup><duration>${m.len}</duration></backup>`;
-        x += emitVoiceXML(tv2, m.start, m.len, 2, 1, keyFifths, true);
+      const trebleVoices = separateVoices(tNotes);
+      const trebleMulti = trebleVoices.length > 1;
+      for (let vi = 0; vi < trebleVoices.length; vi++) {
+        if (vi > 0) x += `<backup><duration>${m.len}</duration></backup>`;
+        x += emitVoiceXML(
+          trebleVoices[vi],
+          m.start,
+          m.len,
+          vi + 1,
+          1,
+          keyFifths,
+          trebleMulti,
+          durationCatalog
+        );
       }
-      // Bass staff (voices 3 & 4)
+
+      // Bass staff
       x += `<backup><duration>${m.len}</duration></backup>`;
       const bNotes = bassSliced.filter(n =>
         n.qStart >= m.start && n.qStart < m.start + m.len);
-      const [bv1, bv2] = separateVoices(bNotes);
-      const bMulti = bv2.length > 0;
-      x += emitVoiceXML(bv1, m.start, m.len, 3, 2, keyFifths, bMulti);
-      if (bMulti) {
-        x += `<backup><duration>${m.len}</duration></backup>`;
-        x += emitVoiceXML(bv2, m.start, m.len, 4, 2, keyFifths, true);
+      const bassVoices = separateVoices(bNotes);
+      const bassMulti = bassVoices.length > 1;
+      const bassVoiceStart = trebleVoices.length + 1;
+      for (let vi = 0; vi < bassVoices.length; vi++) {
+        if (vi > 0) x += `<backup><duration>${m.len}</duration></backup>`;
+        x += emitVoiceXML(
+          bassVoices[vi],
+          m.start,
+          m.len,
+          bassVoiceStart + vi,
+          2,
+          keyFifths,
+          bassMulti,
+          durationCatalog
+        );
       }
     } else {
-      // Single staff (voices 1 & 2)
+      // Single staff
       const notes = trebleSliced.filter(n =>
         n.qStart >= m.start && n.qStart < m.start + m.len);
-      const [v1, v2] = separateVoices(notes);
-      const multi = v2.length > 0;
-      x += emitVoiceXML(v1, m.start, m.len, 1, null, keyFifths, multi, midTempos);
-      if (multi) {
-        x += `<backup><duration>${m.len}</duration></backup>`;
-        x += emitVoiceXML(v2, m.start, m.len, 2, null, keyFifths, true);
+      const voices = separateVoices(notes);
+      const multi = voices.length > 1;
+      for (let vi = 0; vi < voices.length; vi++) {
+        if (vi > 0) x += `<backup><duration>${m.len}</duration></backup>`;
+        x += emitVoiceXML(
+          voices[vi],
+          m.start,
+          m.len,
+          vi + 1,
+          null,
+          keyFifths,
+          multi,
+          durationCatalog
+        );
       }
     }
 
@@ -1121,7 +1457,19 @@ async function renderScore() {
 
     // 2. Convert MIDI track to MusicXML
     setStatus('\u6b63\u5728\u8f6c\u6362\u97f3\u8f68\u4e3a MusicXML...');
-    const musicxml = midiToMusicXML(currentMidi, trackIdx, isPiano, splitNote, currentFileName);
+    const quantization = chooseQuantization(
+      track.notes,
+      currentMidi.header.ppq,
+      currentMidi.header.timeSignatures
+    );
+    const musicxml = midiToMusicXML(
+      currentMidi,
+      trackIdx,
+      isPiano,
+      splitNote,
+      currentFileName,
+      quantization
+    );
 
     // 3. Update info bar
     const meta = extractMeta(currentMidi, trackIdx);
@@ -1179,7 +1527,14 @@ async function renderScore() {
     // 7. Prepare Verovio timing data & build MIDI↔Verovio time calibration
     try { tk.renderToMIDI(); } catch (_) {}
     timeCalibration = buildTimeCalibration(
-      track.notes, currentMidi.header.ppq, currentMidi.header.tempos
+      track.notes,
+      currentMidi.header.ppq,
+      currentMidi.header.tempos,
+      quantization
+    );
+    console.log(
+      `Quantization: ${quantization.divisions} divisions/quarter` +
+      (quantization.hasTriplets ? ' (triplet-aware)' : '')
     );
     console.log(`Time calibration: ${timeCalibration.length} points, last: midi=${timeCalibration[timeCalibration.length-1].midiSec.toFixed(2)}s → vrv=${timeCalibration[timeCalibration.length-1].vrvSec.toFixed(2)}s`);
     playbackTrackIdx = trackIdx;

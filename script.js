@@ -201,7 +201,7 @@ function initDateAndYiJi() {
     clockInterval = setInterval(updateDateTime, 1000);
 
     // 宜忌逻辑（每日固定）
-    const yiList = ['读文献', '看书', '写文章', '跑文章', '做实验', '运动', '哈↑基→米↓~', '曼↑波↓~'];
+    const yiList = ['读文献', '看书', '写文章', '跑代码', '做实验', '运动', '哈↑基→米↓~', '曼↑波↓~'];
     const jiList = ['熬夜', '摆烂', '刷视频', '打游戏', '摸鱼🐟', '鹿🦌', '叮咚鸡🐔', '大狗叫🐕'];
     const today = new Date();
     const seed = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();

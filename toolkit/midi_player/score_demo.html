@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MIDI 五线谱查看器</title>
+  <script src="https://unpkg.com/tone@14.7.77/build/Tone.js"></script>
   <script src="https://unpkg.com/@tonejs/midi"></script>
   <script src="https://www.verovio.org/javascript/develop/verovio-toolkit-wasm.js" defer></script>
   <style>
@@ -168,13 +169,99 @@
       height: auto;
     }
 
-    /* Dark mode: invert Verovio SVG so black notes become white on dark bg */
+    /* Verovio SVG colors are normalized to currentColor in score_demo.js. */
+    #scoreContainer {
+      color: #e8e8e8;
+    }
+    body.light #scoreContainer {
+      color: #111;
+    }
     body:not(.light) .score-outer {
       background: #181818;
       box-shadow: 0 4px 20px rgba(0,0,0,0.6);
     }
-    body:not(.light) #scoreContainer svg {
-      filter: invert(0.5) hue-rotate(180deg);
+
+    /* Playback and paging */
+    .playback-bar {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 14px;
+      padding: 12px 14px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+    }
+    .playback-bar.visible { display: flex; }
+    .playback-btn,
+    .page-btn {
+      background: rgba(102,126,234,0.12);
+      color: var(--text-primary);
+      border: 1px solid rgba(102,126,234,0.35);
+      border-radius: 6px;
+      padding: 6px 12px;
+      font-size: 13px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .playback-btn:hover:not(:disabled),
+    .page-btn:hover:not(:disabled) {
+      background: rgba(102,126,234,0.25);
+    }
+    .playback-btn:disabled,
+    .page-btn:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+    .progress-bar {
+      flex: 1 1 260px;
+      min-width: 160px;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+    #timeDisplay,
+    #pageIndicator {
+      color: var(--text-secondary);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+    .page-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-left: auto;
+    }
+    #scoreContainer {
+      transition: opacity 0.08s ease;
+    }
+    #scoreContainer.page-fade {
+      opacity: 0;
+    }
+    #scoreContainer .note-active,
+    #scoreContainer .note-active * {
+      color: var(--accent) !important;
+      fill: var(--accent) !important;
+      stroke: var(--accent) !important;
+    }
+
+    @media (max-width: 640px) {
+      .playback-bar {
+        align-items: stretch;
+      }
+      .progress-bar {
+        flex-basis: 100%;
+        order: 2;
+      }
+      #timeDisplay {
+        order: 3;
+      }
+      .page-controls {
+        width: 100%;
+        justify-content: center;
+        margin-left: 0;
+        order: 4;
+      }
     }
   </style>
 </head>
@@ -232,6 +319,27 @@
     <div class="score-outer" id="scoreOuter">
       <div class="score-empty" id="scoreContainer">
         <span>五线谱将在此显示</span>
+      </div>
+    </div>
+
+    <div class="playback-bar" id="playbackBar">
+      <button class="playback-btn" id="playBtn" type="button">▶ 播放</button>
+      <button class="playback-btn" id="stopBtn" type="button" disabled>■ 停止</button>
+      <input
+        class="progress-bar"
+        id="progressBar"
+        type="range"
+        min="0"
+        max="1000"
+        value="0"
+        step="1"
+        aria-label="播放进度"
+      >
+      <span id="timeDisplay">0:00 / 0:00</span>
+      <div class="page-controls">
+        <button class="page-btn" id="prevPageBtn" type="button" disabled>上一页</button>
+        <span id="pageIndicator">1 / 1</span>
+        <button class="page-btn" id="nextPageBtn" type="button" disabled>下一页</button>
       </div>
     </div>
   </div>

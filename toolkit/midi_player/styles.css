@@ -84,6 +84,30 @@ body {
     margin-bottom: 20px;
 }
 
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.tool-link {
+    padding: 8px 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--upload-btn-bg);
+    color: var(--text-primary);
+    font-size: 13px;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.tool-link:hover {
+    border-color: var(--accent);
+    background: var(--upload-btn-hover);
+    transform: translateY(-1px);
+}
+
 h1 {
     font-size: 1.5rem;
     font-weight: 300;

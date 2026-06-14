@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="支持鼠标、触摸和自定义电脑键盘映射的在线模拟钢琴">
+  <title>模拟钢琴</title>
+  <link rel="stylesheet" href="piano.css">
+  <script src="https://unpkg.com/tone@14.7.77/build/Tone.js"></script>
+  <script src="piano.js" defer></script>
+</head>
+<body>
+  <main class="page-wrapper">
+    <header class="header">
+      <div>
+        <p class="eyebrow">MIDI TOOLKIT</p>
+        <h1>模拟钢琴</h1>
+      </div>
+      <nav class="header-actions" aria-label="页面导航">
+        <a class="btn-ghost" href="index.html">返回播放器</a>
+        <a class="btn-ghost" href="score_demo.html">五线谱工具</a>
+        <button class="btn-icon" id="themeToggle" type="button" aria-label="切换主题" title="切换主题">
+          <span class="theme-icon" aria-hidden="true">☀</span>
+        </button>
+      </nav>
+    </header>
+
+    <section class="hero-panel">
+      <div class="hero-copy">
+        <span class="status-dot" id="audioStatusDot" aria-hidden="true"></span>
+        <div>
+          <p class="hero-title" id="audioStatus">合成钢琴已就绪</p>
+          <p class="hero-description">使用鼠标、触摸或电脑键盘演奏。首次发声需要点击或按下任意已映射按键。</p>
+        </div>
+      </div>
+      <div class="now-playing" aria-live="polite">
+        <span>当前音符</span>
+        <strong id="nowPlaying">—</strong>
+      </div>
+    </section>
+
+    <section class="control-panel" aria-label="钢琴控制">
+      <div class="control-group octave-control">
+        <span class="control-label">音域</span>
+        <button class="control-button square" id="octaveDown" type="button" aria-label="降低一个八度">−</button>
+        <strong id="octaveRange">C4 – B5</strong>
+        <button class="control-button square" id="octaveUp" type="button" aria-label="升高一个八度">＋</button>
+      </div>
+
+      <label class="control-group slider-control" for="volumeSlider">
+        <span class="control-label">音量</span>
+        <input id="volumeSlider" type="range" min="-30" max="0" value="-8" step="1">
+        <output id="volumeValue" for="volumeSlider">-8 dB</output>
+      </label>
+
+      <button class="control-button sustain-button" id="sustainButton" type="button" aria-pressed="false">
+        <span class="pedal-light" aria-hidden="true"></span>
+        延音踏板
+        <strong id="sustainState">关闭</strong>
+      </button>
+
+      <button class="control-button" id="releaseAllButton" type="button">停止全部音符</button>
+    </section>
+
+    <section class="piano-panel">
+      <div class="piano-heading">
+        <div>
+          <p class="section-kicker">PLAY</p>
+          <h2>双八度键盘</h2>
+        </div>
+        <p>琴键上方显示音名，下方显示当前电脑键盘映射。</p>
+      </div>
+      <div class="piano-scroll" id="pianoScroll">
+        <div class="piano" id="piano" role="group" aria-label="双八度模拟钢琴"></div>
+      </div>
+    </section>
+
+    <section class="mapping-panel" id="mappingPanel">
+      <div class="mapping-header">
+        <div>
+          <p class="section-kicker">KEY MAPPING</p>
+          <h2>自定义键盘映射</h2>
+          <p>点击一个按键标签，然后按下新的电脑键盘按键。冲突的映射会自动交换。</p>
+        </div>
+        <div class="mapping-actions">
+          <button class="control-button" id="clearMappingButton" type="button">清空映射</button>
+          <button class="control-button primary" id="resetMappingButton" type="button">恢复默认</button>
+        </div>
+      </div>
+
+      <div class="capture-banner" id="captureBanner" hidden>
+        <div>
+          <span>正在设置</span>
+          <strong id="captureNote">C4</strong>
+        </div>
+        <p>请按下新的按键，按 Esc 取消。</p>
+        <button class="capture-cancel" id="captureCancel" type="button">取消</button>
+      </div>
+
+      <div class="mapping-grid" id="mappingGrid"></div>
+      <p class="mapping-save-status" id="mappingSaveStatus" aria-live="polite">映射会自动保存在当前浏览器中。</p>
+    </section>
+  </main>
+</body>
+</html>
