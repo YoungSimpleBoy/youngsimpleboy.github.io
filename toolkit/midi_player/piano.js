@@ -1,7 +1,7 @@
-const STORAGE_KEY = 'midi-player-piano-keymap-v1';
+const STORAGE_KEY = 'midi-player-piano-keymap-v2';
 const THEME_KEY = 'theme';
-const BASE_MIDI = 60;
-const KEY_COUNT = 24;
+const BASE_MIDI = 55;
+const KEY_COUNT = 37;
 const MIN_OCTAVE_SHIFT = -2;
 const MAX_OCTAVE_SHIFT = 2;
 
@@ -19,8 +19,13 @@ const DEFAULT_MAPPING = [
   { code: 'KeyB', label: 'B' },
   { code: 'KeyH', label: 'H' },
   { code: 'KeyN', label: 'N' },
-  { code: 'KeyJ', label: 'J' },
   { code: 'KeyM', label: 'M' },
+  { code: 'KeyK', label: 'K' },
+  { code: 'Comma', label: ',' },
+  { code: 'KeyL', label: 'L' },
+  { code: 'Period', label: '.' },
+  { code: 'Semicolon', label: ';' },
+  { code: 'Slash', label: '/' },
   { code: 'KeyQ', label: 'Q' },
   { code: 'Digit2', label: '2' },
   { code: 'KeyW', label: 'W' },
@@ -33,7 +38,16 @@ const DEFAULT_MAPPING = [
   { code: 'KeyY', label: 'Y' },
   { code: 'Digit7', label: '7' },
   { code: 'KeyU', label: 'U' },
+  { code: 'KeyI', label: 'I' },
+  { code: 'Digit9', label: '9' },
+  { code: 'KeyO', label: 'O' },
+  { code: 'Digit0', label: '0' },
+  { code: 'KeyP', label: 'P' },
+  { code: 'BracketLeft', label: '[' },
+  { code: 'Equal', label: '=' },
+  { code: 'BracketRight', label: ']' },
 ];
+const DEFAULT_SUSTAIN_MAPPING = { code: 'Space', label: '空格' };
 
 const CODE_LABELS = {
   Space: '空格',
@@ -87,6 +101,8 @@ const elements = {
   volumeValue: document.getElementById('volumeValue'),
   sustainButton: document.getElementById('sustainButton'),
   sustainState: document.getElementById('sustainState'),
+  sustainShortcut: document.getElementById('sustainShortcut'),
+  sustainMappingKey: document.getElementById('sustainMappingKey'),
   releaseAllButton: document.getElementById('releaseAllButton'),
   nowPlaying: document.getElementById('nowPlaying'),
   audioStatus: document.getElementById('audioStatus'),
@@ -94,10 +110,13 @@ const elements = {
   themeToggle: document.getElementById('themeToggle'),
 };
 
-let mapping = loadMapping();
+let mappingState = loadMapping();
+let mapping = mappingState.notes;
+let sustainMapping = mappingState.sustain;
 let octaveShift = 0;
-let captureSlot = null;
+let captureTarget = null;
 let sustainEnabled = false;
+let sustainKeyboardPressed = false;
 let audioStarted = false;
 let samplerReady = false;
 let saveStatusTimer = null;
@@ -175,23 +194,43 @@ function cloneDefaultMapping() {
 function loadMapping() {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    if (!Array.isArray(saved) || saved.length !== KEY_COUNT) {
-      return cloneDefaultMapping();
+    if (!saved || !Array.isArray(saved.notes) || saved.notes.length !== KEY_COUNT) {
+      return {
+        notes: cloneDefaultMapping(),
+        sustain: { ...DEFAULT_SUSTAIN_MAPPING },
+      };
     }
-    return saved.map(item => {
+    const notes = saved.notes.map(item => {
       if (!item || typeof item.code !== 'string') return null;
       return {
         code: item.code,
         label: typeof item.label === 'string' ? item.label : codeToLabel(item.code),
       };
     });
+    const sustain = saved.sustain === null
+      ? null
+      : saved.sustain && typeof saved.sustain.code === 'string'
+        ? {
+            code: saved.sustain.code,
+            label: typeof saved.sustain.label === 'string'
+              ? saved.sustain.label
+              : codeToLabel(saved.sustain.code),
+          }
+        : { ...DEFAULT_SUSTAIN_MAPPING };
+    return { notes, sustain };
   } catch (_) {
-    return cloneDefaultMapping();
+    return {
+      notes: cloneDefaultMapping(),
+      sustain: { ...DEFAULT_SUSTAIN_MAPPING },
+    };
   }
 }
 
 function saveMapping(message = '映射已保存。') {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(mapping));
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({
+    notes: mapping,
+    sustain: sustainMapping,
+  }));
   elements.mappingSaveStatus.textContent = message;
   clearTimeout(saveStatusTimer);
   saveStatusTimer = setTimeout(() => {
@@ -232,6 +271,10 @@ function renderPiano() {
   const whiteLayer = document.createElement('div');
   whiteLayer.className = 'white-keys';
   const blackKeys = [];
+  const whiteKeyCount = Array.from({ length: KEY_COUNT }, (_, slot) =>
+    slotToMidi(slot)
+  ).filter(midi => !BLACK_PITCH_CLASSES.has(((midi % 12) + 12) % 12)).length;
+  elements.piano.style.setProperty('--white-count', String(whiteKeyCount));
   let whiteCount = 0;
 
   for (let slot = 0; slot < KEY_COUNT; slot++) {
@@ -241,7 +284,7 @@ function renderPiano() {
     const key = createPianoKey(slot, midi, isBlack);
 
     if (isBlack) {
-      key.style.setProperty('--black-left', `${whiteCount / 14 * 100}%`);
+      key.style.setProperty('--black-left', `${whiteCount / whiteKeyCount * 100}%`);
       blackKeys.push(key);
     } else {
       whiteLayer.appendChild(key);
@@ -292,7 +335,10 @@ function renderMapping() {
     keyButton.textContent = mapping[slot]?.label || '未映射';
     keyButton.title = `修改 ${note.textContent} 的键盘映射`;
     keyButton.classList.toggle('is-empty', !mapping[slot]);
-    keyButton.classList.toggle('is-capturing', captureSlot === slot);
+    keyButton.classList.toggle(
+      'is-capturing',
+      captureTarget?.type === 'note' && captureTarget.slot === slot
+    );
 
     item.append(note, keyButton);
     fragment.appendChild(item);
@@ -300,6 +346,13 @@ function renderMapping() {
 
   elements.mappingGrid.innerHTML = '';
   elements.mappingGrid.appendChild(fragment);
+  elements.sustainMappingKey.textContent = sustainMapping?.label || '未映射';
+  elements.sustainShortcut.textContent = sustainMapping?.label || '未映射';
+  elements.sustainMappingKey.classList.toggle('is-empty', !sustainMapping);
+  elements.sustainMappingKey.classList.toggle(
+    'is-capturing',
+    captureTarget?.type === 'sustain'
+  );
 }
 
 function renderRange() {
@@ -426,46 +479,65 @@ function setSustain(enabled) {
   }
 }
 
-function startCapture(slot) {
+function startCapture(target) {
   releaseAll();
-  captureSlot = slot;
-  elements.captureNote.textContent = midiToNoteName(slotToMidi(slot));
+  setSustain(false);
+  captureTarget = target;
+  elements.captureNote.textContent = target.type === 'sustain'
+    ? '延音踏板'
+    : midiToNoteName(slotToMidi(target.slot));
   elements.captureBanner.hidden = false;
   renderMapping();
 }
 
 function cancelCapture() {
-  captureSlot = null;
+  captureTarget = null;
   elements.captureBanner.hidden = true;
   renderMapping();
 }
 
 function assignCapturedKey(code) {
-  if (captureSlot === null) return;
+  if (captureTarget === null) return;
 
-  const targetSlot = captureSlot;
-  const oldTargetMapping = mapping[targetSlot];
-  const conflictSlot = mapping.findIndex((item, slot) =>
-    slot !== targetSlot && item?.code === code
-  );
+  const target = captureTarget;
   const nextMapping = {
     code,
     label: codeToLabel(code),
   };
+  const conflictSlot = mapping.findIndex(item => item?.code === code);
+  const conflictsWithSustain = sustainMapping?.code === code;
 
-  mapping[targetSlot] = nextMapping;
-  if (conflictSlot >= 0) {
-    mapping[conflictSlot] = oldTargetMapping;
+  if (target.type === 'sustain') {
+    const oldSustainMapping = sustainMapping;
+    sustainMapping = nextMapping;
+    if (conflictSlot >= 0) mapping[conflictSlot] = oldSustainMapping;
     saveMapping(
-      oldTargetMapping
-        ? `已交换 ${midiToNoteName(slotToMidi(targetSlot))} 与 ${midiToNoteName(slotToMidi(conflictSlot))} 的映射。`
-        : `已将按键移动到 ${midiToNoteName(slotToMidi(targetSlot))}。`
+      conflictSlot >= 0
+        ? `已交换延音踏板与 ${midiToNoteName(slotToMidi(conflictSlot))} 的映射。`
+        : `延音踏板已映射为 ${nextMapping.label}。`
     );
   } else {
-    saveMapping(`${midiToNoteName(slotToMidi(targetSlot))} 已映射为 ${nextMapping.label}。`);
+    const targetSlot = target.slot;
+    const oldTargetMapping = mapping[targetSlot];
+    const otherNoteSlot = mapping.findIndex((item, slot) =>
+      slot !== targetSlot && item?.code === code
+    );
+    mapping[targetSlot] = nextMapping;
+
+    if (otherNoteSlot >= 0) {
+      mapping[otherNoteSlot] = oldTargetMapping;
+      saveMapping(
+        `已交换 ${midiToNoteName(slotToMidi(targetSlot))} 与 ${midiToNoteName(slotToMidi(otherNoteSlot))} 的映射。`
+      );
+    } else if (conflictsWithSustain) {
+      sustainMapping = oldTargetMapping;
+      saveMapping(`已交换 ${midiToNoteName(slotToMidi(targetSlot))} 与延音踏板的映射。`);
+    } else {
+      saveMapping(`${midiToNoteName(slotToMidi(targetSlot))} 已映射为 ${nextMapping.label}。`);
+    }
   }
 
-  captureSlot = null;
+  captureTarget = null;
   elements.captureBanner.hidden = true;
   renderMapping();
   renderPiano();
@@ -532,11 +604,11 @@ for (const eventName of ['pointerup', 'pointercancel', 'lostpointercapture']) {
 elements.mappingGrid.addEventListener('click', event => {
   const button = event.target.closest('.mapping-key');
   if (!button) return;
-  startCapture(Number(button.dataset.slot));
+  startCapture({ type: 'note', slot: Number(button.dataset.slot) });
 });
 
 document.addEventListener('keydown', event => {
-  if (captureSlot !== null) {
+  if (captureTarget !== null) {
     handleCaptureKey(event);
     return;
   }
@@ -544,6 +616,14 @@ document.addEventListener('keydown', event => {
   if (event.isComposing || event.ctrlKey || event.altKey || event.metaKey) return;
   const targetTag = event.target.tagName;
   if (targetTag === 'INPUT' || targetTag === 'SELECT' || targetTag === 'TEXTAREA') return;
+
+  if (sustainMapping?.code === event.code) {
+    event.preventDefault();
+    if (event.repeat || sustainKeyboardPressed) return;
+    sustainKeyboardPressed = true;
+    setSustain(true);
+    return;
+  }
 
   const slot = findSlotByCode(event.code);
   if (slot < 0) return;
@@ -554,6 +634,12 @@ document.addEventListener('keydown', event => {
 });
 
 document.addEventListener('keyup', event => {
+  if (sustainKeyboardPressed && sustainMapping?.code === event.code) {
+    event.preventDefault();
+    sustainKeyboardPressed = false;
+    setSustain(false);
+    return;
+  }
   if (!pressedCodes.has(event.code)) return;
   event.preventDefault();
   pressedCodes.delete(event.code);
@@ -561,17 +647,27 @@ document.addEventListener('keyup', event => {
 });
 
 elements.captureCancel.addEventListener('click', cancelCapture);
+elements.sustainMappingKey.addEventListener('click', () => {
+  startCapture({ type: 'sustain' });
+});
 elements.resetMappingButton.addEventListener('click', () => {
   cancelCapture();
+  sustainKeyboardPressed = false;
+  setSustain(false);
+  releaseAll();
   mapping = cloneDefaultMapping();
+  sustainMapping = { ...DEFAULT_SUSTAIN_MAPPING };
   saveMapping('已恢复默认键盘映射。');
   renderMapping();
   renderPiano();
 });
 elements.clearMappingButton.addEventListener('click', () => {
   cancelCapture();
+  sustainKeyboardPressed = false;
+  setSustain(false);
   releaseAll();
   mapping = new Array(KEY_COUNT).fill(null);
+  sustainMapping = null;
   saveMapping('已清空全部键盘映射。');
   renderMapping();
   renderPiano();
@@ -579,7 +675,11 @@ elements.clearMappingButton.addEventListener('click', () => {
 elements.octaveDown.addEventListener('click', () => changeOctave(-1));
 elements.octaveUp.addEventListener('click', () => changeOctave(1));
 elements.sustainButton.addEventListener('click', () => setSustain(!sustainEnabled));
-elements.releaseAllButton.addEventListener('click', releaseAll);
+elements.releaseAllButton.addEventListener('click', () => {
+  sustainKeyboardPressed = false;
+  setSustain(false);
+  releaseAll();
+});
 elements.volumeSlider.addEventListener('input', event => {
   const value = Number(event.target.value);
   masterVolume.volume.rampTo(value, 0.05);
@@ -592,9 +692,17 @@ elements.themeToggle.addEventListener('click', () => {
   updateThemeIcon();
 });
 
-window.addEventListener('blur', releaseAll);
+window.addEventListener('blur', () => {
+  sustainKeyboardPressed = false;
+  setSustain(false);
+  releaseAll();
+});
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden) releaseAll();
+  if (document.hidden) {
+    sustainKeyboardPressed = false;
+    setSustain(false);
+    releaseAll();
+  }
 });
 
 initializeTheme();

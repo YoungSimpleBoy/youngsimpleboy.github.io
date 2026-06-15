@@ -277,6 +277,15 @@ h2 {
   background: var(--accent-soft);
 }
 
+.shortcut-hint {
+  padding: 2px 5px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  color: var(--text-secondary);
+  font-size: 9px;
+  font-weight: 600;
+}
+
 .pedal-light {
   width: 7px;
   height: 7px;
@@ -326,10 +335,10 @@ h2 {
 }
 
 .piano {
-  --white-count: 14;
+  --white-count: 22;
   position: relative;
-  width: max(840px, 100%);
-  min-width: 840px;
+  width: max(1120px, 100%);
+  min-width: 1120px;
   height: 310px;
   margin: 0 auto;
   user-select: none;
@@ -489,6 +498,33 @@ h2 {
   gap: 8px;
 }
 
+.pedal-mapping {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+  padding: 11px 12px;
+  border: 1px solid rgba(124, 140, 255, 0.3);
+  border-radius: 10px;
+  background: var(--accent-soft);
+}
+
+.pedal-mapping > div {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.pedal-mapping-hint {
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+
+.pedal-mapping-key {
+  min-width: 64px;
+}
+
 .mapping-item {
   display: flex;
   align-items: center;
@@ -598,6 +634,12 @@ h2 {
 
   .piano {
     height: 260px;
+  }
+
+  .pedal-mapping > div {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 3px;
   }
 
   .mapping-actions {

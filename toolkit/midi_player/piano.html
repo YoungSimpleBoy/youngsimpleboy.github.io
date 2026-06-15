@@ -43,7 +43,7 @@
       <div class="control-group octave-control">
         <span class="control-label">音域</span>
         <button class="control-button square" id="octaveDown" type="button" aria-label="降低一个八度">−</button>
-        <strong id="octaveRange">C4 – B5</strong>
+        <strong id="octaveRange">G3 – G6</strong>
         <button class="control-button square" id="octaveUp" type="button" aria-label="升高一个八度">＋</button>
       </div>
 
@@ -56,6 +56,7 @@
       <button class="control-button sustain-button" id="sustainButton" type="button" aria-pressed="false">
         <span class="pedal-light" aria-hidden="true"></span>
         延音踏板
+        <span class="shortcut-hint" id="sustainShortcut">空格</span>
         <strong id="sustainState">关闭</strong>
       </button>
 
@@ -66,12 +67,12 @@
       <div class="piano-heading">
         <div>
           <p class="section-kicker">PLAY</p>
-          <h2>双八度键盘</h2>
+          <h2>37 键键盘</h2>
         </div>
-        <p>琴键上方显示音名，下方显示当前电脑键盘映射。</p>
+        <p>默认音域 G3–G6，琴键下方显示当前电脑键盘映射。</p>
       </div>
       <div class="piano-scroll" id="pianoScroll">
-        <div class="piano" id="piano" role="group" aria-label="双八度模拟钢琴"></div>
+        <div class="piano" id="piano" role="group" aria-label="37 键模拟钢琴"></div>
       </div>
     </section>
 
@@ -80,7 +81,7 @@
         <div>
           <p class="section-kicker">KEY MAPPING</p>
           <h2>自定义键盘映射</h2>
-          <p>点击一个按键标签，然后按下新的电脑键盘按键。冲突的映射会自动交换。</p>
+          <p>点击琴键或踏板的按键标签，然后按下新按键。冲突的映射会自动交换。</p>
         </div>
         <div class="mapping-actions">
           <button class="control-button" id="clearMappingButton" type="button">清空映射</button>
@@ -95,6 +96,14 @@
         </div>
         <p>请按下新的按键，按 Esc 取消。</p>
         <button class="capture-cancel" id="captureCancel" type="button">取消</button>
+      </div>
+
+      <div class="pedal-mapping">
+        <div>
+          <span class="mapping-note">延音踏板</span>
+          <span class="pedal-mapping-hint">默认空格：按住开启，松开关闭</span>
+        </div>
+        <button class="mapping-key pedal-mapping-key" id="sustainMappingKey" type="button">空格</button>
       </div>
 
       <div class="mapping-grid" id="mappingGrid"></div>
