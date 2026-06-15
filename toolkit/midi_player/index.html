@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MIDI 可视化播放器</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="css/visualizer.css">
     <script src="https://unpkg.com/tone@14.7.77/build/Tone.js"></script>
     <script src="https://unpkg.com/@tonejs/midi"></script>
     <!-- 用于GBK解码的encoding.js -->
@@ -90,6 +90,14 @@
                 <input type="range" id="playbackRateSlider" min="0.5" max="2" value="1" step="0.25" class="slider">
                 <span id="playbackRateValue">×1.0</span>
             </div>
+            <div class="volume-control audio-engine-control">
+                <span>音频引擎</span>
+                <select id="audioEngineSelect" class="custom-select">
+                    <option value="tone">快速模式（Tone.js）</option>
+                    <option value="fluidsynth">高质量模式（首次约 30 MB）</option>
+                </select>
+                <span id="audioEngineState">即开即用</span>
+            </div>
         </div>
     </div>
     
@@ -139,6 +147,10 @@
         <p class="copyright">© 2026 YoungSimpleBoy. All rights reserved.</p>
     </footer>
 
-    <script src="app.js"></script>
+    <script src="js/core/midi-utils.js"></script>
+    <script src="js/engines/audio-engine.js"></script>
+    <script src="js/engines/tone-engine.js"></script>
+    <script src="js/engines/fluidsynth-engine.js"></script>
+    <script src="js/visualizer/app.js"></script>
 </body>
 </html>
