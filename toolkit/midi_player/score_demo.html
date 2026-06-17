@@ -4,63 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MIDI 五线谱查看器</title>
+  <link rel="stylesheet" href="css/toolkit-shared.css">
   <script src="https://unpkg.com/tone@14.7.77/build/Tone.js"></script>
   <script src="https://unpkg.com/@tonejs/midi"></script>
   <script src="https://www.verovio.org/javascript/develop/verovio-toolkit-wasm.js" defer></script>
   <style>
-    :root {
-      --bg-primary: #111;
-      --bg-secondary: #1a1a1a;
-      --text-primary: #fff;
-      --text-secondary: #888;
-      --border-color: #333;
-      --accent: #667eea;
-    }
-    .light {
-      --bg-primary: #f0f0f0;
-      --bg-secondary: #fff;
-      --text-primary: #111;
-      --text-secondary: #555;
-      --border-color: #ddd;
-    }
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      background: var(--bg-primary);
-      color: var(--text-primary);
-      font-family: 'Segoe UI', sans-serif;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 20px;
-      transition: background 0.3s, color 0.3s;
-    }
-    .page-wrapper { width: 95%; max-width: 1200px; }
-
-    /* Header */
-    .header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 20px;
-    }
-    .header h1 { font-size: 1.4rem; font-weight: 600; }
-    .header-actions { display: flex; gap: 8px; }
-    .btn-ghost {
-      background: rgba(255,255,255,0.08);
-      color: var(--text-primary);
-      border: 1px solid var(--border-color);
-      border-radius: 6px;
-      padding: 6px 14px;
-      font-size: 13px;
-      cursor: pointer;
-      text-decoration: none;
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      transition: background 0.2s;
-    }
-    .btn-ghost:hover { background: rgba(255,255,255,0.15); }
+    .page-wrapper { width: 95%; max-width: 1440px; }
 
     /* Controls bar */
     .controls-bar {
@@ -171,14 +120,41 @@
 
     /* Verovio SVG colors are normalized to currentColor in score_demo.js. */
     #scoreContainer {
-      color: #e8e8e8;
+      --score-ink: #e8e8e8;
+      color: var(--score-ink);
     }
     body.light #scoreContainer {
-      color: #111;
+      --score-ink: #111;
+      color: var(--score-ink);
     }
     body:not(.light) .score-outer {
       background: #181818;
       box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+    }
+    #scoreContainer svg {
+      color: var(--score-ink);
+    }
+    body:not(.light) #scoreContainer svg [fill="#000" i],
+    body:not(.light) #scoreContainer svg [fill="#000000" i],
+    body:not(.light) #scoreContainer svg [fill="black" i],
+    body:not(.light) #scoreContainer svg [style*="fill:#000" i],
+    body:not(.light) #scoreContainer svg [style*="fill: #000" i],
+    body:not(.light) #scoreContainer svg [style*="fill:black" i],
+    body:not(.light) #scoreContainer svg [style*="fill: black" i],
+    body:not(.light) #scoreContainer svg [style*="fill:rgb(0,0,0)" i],
+    body:not(.light) #scoreContainer svg [style*="fill: rgb(0,0,0)" i] {
+      fill: var(--score-ink) !important;
+    }
+    body:not(.light) #scoreContainer svg [stroke="#000" i],
+    body:not(.light) #scoreContainer svg [stroke="#000000" i],
+    body:not(.light) #scoreContainer svg [stroke="black" i],
+    body:not(.light) #scoreContainer svg [style*="stroke:#000" i],
+    body:not(.light) #scoreContainer svg [style*="stroke: #000" i],
+    body:not(.light) #scoreContainer svg [style*="stroke:black" i],
+    body:not(.light) #scoreContainer svg [style*="stroke: black" i],
+    body:not(.light) #scoreContainer svg [style*="stroke:rgb(0,0,0)" i],
+    body:not(.light) #scoreContainer svg [style*="stroke: rgb(0,0,0)" i] {
+      stroke: var(--score-ink) !important;
     }
 
     /* Playback and paging */
@@ -269,10 +245,20 @@
   <div class="page-wrapper">
     <div class="header">
       <h1>MIDI 五线谱查看器</h1>
-      <div class="header-actions">
-        <a href="index.html" class="btn-ghost">← 返回播放器</a>
-        <button class="btn-ghost" id="themeToggle">☀ 切换主题</button>
-      </div>
+      <nav class="header-actions toolkit-page-nav" aria-label="MIDI 工具导航">
+        <a class="toolkit-nav-link" href="index.html">可视化播放器</a>
+        <a class="toolkit-nav-link" href="score_demo.html" aria-current="page">五线谱工具</a>
+        <a class="toolkit-nav-link" href="piano.html">模拟钢琴</a>
+        <button class="toolkit-theme-toggle" id="themeToggle" type="button" title="切换主题" aria-label="切换主题">
+          <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="5"/>
+            <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+          </svg>
+          <svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+        </button>
+      </nav>
     </div>
 
     <div class="controls-bar">
@@ -344,6 +330,38 @@
     </div>
   </div>
 
-  <script src="score_demo.js"></script>
+  <footer class="footer">
+    <div class="footer-links">
+      <a href="../../index.html" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+          <polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+        个人主页
+      </a>
+      <a href="https://github.com/YoungSimpleBoy">
+        <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
+          <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+        </svg>
+        GitHub
+      </a>
+      <a href="mailto:2404716575@qq.com" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+          <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+          <polyline points="22,6 12,13 2,6"/>
+        </svg>
+        E-mail
+      </a>
+      <a href="https://space.bilibili.com/52652807" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
+          <path d="M17.813 4.653h.854c1.51.054 2.769.578 3.773 1.574 1.004.995 1.524 2.249 1.56 3.76v7.36c-.036 1.51-.556 2.769-1.56 3.773s-2.262 1.524-3.773 1.56H5.333c-1.51-.036-2.769-.556-3.773-1.56S.036 18.858 0 17.347v-7.36c.036-1.511.556-2.765 1.56-3.76 1.004-.996 2.262-1.52 3.773-1.574h.774l-1.174-1.12a1.234 1.234 0 0 1-.373-.906c0-.356.124-.659.373-.907l.027-.027c.267-.249.573-.373.92-.373.347 0 .653.124.92.373L9.653 4.44c.071.071.134.142.187.213h4.267a.836.836 0 0 1 .16-.213l2.853-2.747c.267-.249.573-.373.92-.373.347 0 .662.151.929.4.267.249.391.551.391.907 0 .355-.124.657-.373.906zM5.333 7.24c-.746.018-1.373.276-1.88.773-.506.498-.769 1.13-.786 1.894v7.52c.017.764.28 1.395.786 1.893.507.498 1.134.756 1.88.773h13.334c.746-.017 1.373-.275 1.88-.773.506-.498.769-1.129.786-1.893v-7.52c-.017-.765-.28-1.396-.786-1.894-.507-.497-1.134-.755-1.88-.773zM8 11.107c.373 0 .684.124.933.373.25.249.383.569.4.96v1.173c-.017.391-.15.711-.4.96-.249.25-.56.374-.933.374s-.684-.125-.933-.374c-.25-.249-.383-.569-.4-.96V12.44c0-.373.129-.689.386-.947.258-.257.574-.386.947-.386zm8 0c.373 0 .684.124.933.373.25.249.383.569.4.96v1.173c-.017.391-.15.711-.4.96-.249.25-.56.374-.933.374s-.684-.125-.933-.374c-.25-.249-.383-.569-.4-.96V12.44c.017-.391.15-.711.4-.96.249-.249.56-.373.933-.373z"/>
+        </svg>
+        bilibili
+      </a>
+    </div>
+    <p class="copyright">(C) 2026 YoungSimpleBoy. All rights reserved.</p>
+  </footer>
+
+  <script src="js/score_demo.js"></script>
 </body>
 </html>

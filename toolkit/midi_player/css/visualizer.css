@@ -1,159 +1,12 @@
-/* ==================== CSS变量定义 ==================== */
+/* ==================== Visualizer-Specific Variables ==================== */
 :root {
-    /* 深色主题 (默认) */
-    --bg-primary: #111;
-    --bg-secondary: #1a1a1a;
-    --bg-hover: #222;
-    --text-primary: #fff;
-    --text-secondary: #888;
-    --text-muted: #666;
-    --border-color: #333;
-    --accent: #667eea;
-    --accent-hover: #764ba2;
     --canvas-bg: #000;
     --canvas-shadow: rgba(0, 0, 0, 0.5);
-
-    /* 深色模式专属样式 */
-    --upload-btn-bg: rgba(255, 255, 255, 0.1);
-    --upload-btn-border: rgba(255, 255, 255, 0.3);
-    --upload-btn-hover: rgba(255, 255, 255, 0.2);
-    --select-bg: rgba(255, 255, 255, 0.05);
-    --select-border: rgba(255, 255, 255, 0.15);
-    --select-text: #eee;
-    --select-hover-bg: rgba(255, 255, 255, 0.1);
-    --slider-bg: rgba(255, 255, 255, 0.2);
-    --progress-bg: rgba(255, 255, 255, 0.2);
-    --switch-bg: rgba(255, 255, 255, 0.2);
-
-    transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* 浅色主题 */
 .light {
-    --bg-primary: #f5f5f5;
-    --bg-secondary: #fff;
-    --bg-hover: #e8e8e8;
-    --text-primary: #1a1a1a;
-    --text-secondary: #555;
-    --text-muted: #888;
-    --border-color: #ddd;
-    --accent: #667eea;
-    --accent-hover: #764ba2;
     --canvas-bg: #fff;
     --canvas-shadow: rgba(0, 0, 0, 0.15);
-
-    /* 浅色模式专属样式 */
-    --upload-btn-bg: rgba(102, 126, 234, 0.1);
-    --upload-btn-border: rgba(102, 126, 234, 0.3);
-    --upload-btn-hover: rgba(102, 126, 234, 0.2);
-    --select-bg: rgba(102, 126, 234, 0.05);
-    --select-border: rgba(102, 126, 234, 0.2);
-    --select-text: #333;
-    --select-hover-bg: rgba(102, 126, 234, 0.1);
-    --slider-bg: rgba(102, 126, 234, 0.2);
-    --progress-bg: rgba(102, 126, 234, 0.2);
-    --switch-bg: rgba(102, 126, 234, 0.2);
-}
-
-/* ==================== 基础样式 ==================== */
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
-
-body {
-    background: var(--bg-primary);
-    color: var(--text-primary);
-    font-family: 'Segoe UI', sans-serif;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 20px;
-    transition: background-color 0.3s ease, color 0.3s ease;
-}
-
-/* ==================== 头部样式 ==================== */
-.header {
-    width: 95%;
-    max-width: 1440px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-}
-
-.header-actions {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.tool-link {
-    padding: 8px 14px;
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    background: var(--upload-btn-bg);
-    color: var(--text-primary);
-    font-size: 13px;
-    font-weight: 500;
-    text-decoration: none;
-    transition: all 0.2s ease;
-}
-
-.tool-link:hover {
-    border-color: var(--accent);
-    background: var(--upload-btn-hover);
-    transform: translateY(-1px);
-}
-
-h1 {
-    font-size: 1.5rem;
-    font-weight: 300;
-    letter-spacing: 0.1em;
-    color: var(--text-primary);
-}
-
-/* 主题切换按钮 */
-.theme-toggle {
-    background: var(--bg-hover);
-    border: 1px solid var(--border-color);
-    cursor: pointer;
-    padding: 8px;
-    border-radius: 50%;
-    color: var(--text-secondary);
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.theme-toggle:hover {
-    background: var(--accent);
-    color: white;
-    border-color: var(--accent);
-}
-
-.theme-toggle svg {
-    width: 20px;
-    height: 20px;
-}
-
-.sun-icon {
-    display: block;
-}
-
-.moon-icon {
-    display: none;
-}
-
-.light .sun-icon {
-    display: none;
-}
-
-.light .moon-icon {
-    display: block;
 }
 
 /* ==================== 按钮样式 ==================== */
@@ -748,48 +601,6 @@ input:checked+.checkmark:before {
     padding: 10px;
 }
 
-/* ==================== 页脚样式 ==================== */
-.footer {
-    width: 95%;
-    max-width: 1440px;
-    margin-top: 40px;
-    padding: 20px 0;
-    border-top: 1px solid var(--border-color);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 12px;
-}
-
-.footer-links {
-    display: flex;
-    gap: 24px;
-    align-items: center;
-}
-
-.footer-links a {
-    color: var(--text-secondary);
-    text-decoration: none;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 13px;
-    transition: color 0.2s ease;
-}
-
-.footer-links a:hover {
-    color: var(--accent);
-}
-
-.footer-links svg {
-    width: 16px;
-    height: 16px;
-}
-
-.copyright {
-    color: var(--text-muted);
-    font-size: 12px;
-}
 
 /* ==================== 音轨控制面板 ==================== */
 .track-panel {
@@ -1094,21 +905,6 @@ input:checked+.checkmark:before {
 
 /* ==================== 手机端响应式优化 ==================== */
 @media (max-width: 768px) {
-    body {
-        padding: 5px;
-    }
-
-    /* 头部调整 */
-    .header {
-        width: 100%;
-        margin-bottom: 15px;
-    }
-
-    h1 {
-        font-size: 1.2rem;
-        padding: 15px;
-    }
-
     .canvas-wrapper {
         width: 95% !important;
     }
@@ -1296,18 +1092,5 @@ input:checked+.checkmark:before {
 
     .track-name {
         max-width: 150px;
-    }
-
-    /* 页脚优化 */
-    .footer-links {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        /* 链接两两排列 */
-        gap: 15px;
-        text-align: center;
-    }
-
-    .footer-links a {
-        justify-content: center;
     }
 }

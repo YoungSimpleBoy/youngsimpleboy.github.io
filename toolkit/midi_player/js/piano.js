@@ -577,13 +577,7 @@ function changeOctave(delta) {
 function initializeTheme() {
   const savedTheme = localStorage.getItem(THEME_KEY);
   const prefersLight = window.matchMedia?.('(prefers-color-scheme: light)').matches;
-  document.body.classList.toggle('light', savedTheme ? savedTheme === 'light' : prefersLight);
-  updateThemeIcon();
-}
-
-function updateThemeIcon() {
-  const isLight = document.body.classList.contains('light');
-  elements.themeToggle.querySelector('.theme-icon').textContent = isLight ? '☾' : '☀';
+  document.documentElement.classList.toggle('light', savedTheme ? savedTheme === 'light' : prefersLight);
 }
 
 elements.piano.addEventListener('pointerdown', event => {
@@ -687,9 +681,8 @@ elements.volumeSlider.addEventListener('input', event => {
   elements.volumeValue.textContent = `${value} dB`;
 });
 elements.themeToggle.addEventListener('click', () => {
-  const isLight = document.body.classList.toggle('light');
+  const isLight = document.documentElement.classList.toggle('light');
   localStorage.setItem(THEME_KEY, isLight ? 'light' : 'dark');
-  updateThemeIcon();
 });
 
 window.addEventListener('blur', () => {

@@ -112,9 +112,16 @@ async function getInstrumentInstance(type) {
 }
 
 // ==================== Theme ====================
+function initTheme() {
+  const saved = localStorage.getItem('theme');
+  const prefersLight = window.matchMedia?.('(prefers-color-scheme: light)').matches;
+  document.documentElement.classList.toggle('light', saved ? saved === 'light' : prefersLight);
+}
+initTheme();
+
 document.getElementById('themeToggle').addEventListener('click', () => {
-  const isLight = document.body.classList.toggle('light');
-  document.getElementById('themeToggle').textContent = isLight ? '\u263d \u5207\u6362\u4e3b\u9898' : '\u2600 \u5207\u6362\u4e3b\u9898';
+  const isLight = document.documentElement.classList.toggle('light');
+  localStorage.setItem('theme', isLight ? 'light' : 'dark');
 });
 
 // ==================== Status ====================
@@ -1367,14 +1374,20 @@ function updatePageIndicator() {
 
 // Post-process Verovio SVG for dark-mode theming via CSS currentColor
 function postProcessSVG(svg) {
-  // Replace explicit black fills/strokes with currentColor
-  svg = svg.replace(/(fill|stroke)="(#000000|#000|black)"/gi, '$1="currentColor"');
-  // Handle style="...fill:#000000..." inline styles
-  svg = svg.replace(/(fill|stroke)\s*:\s*(#000000|#000|black)/gi, '$1:currentColor');
+  const blackColor = '(#000000|#000|black|rgb\\(\\s*0\\s*,\\s*0\\s*,\\s*0\\s*\\))';
+  const attrColor = new RegExp(`(fill|stroke)=(["'])${blackColor}\\2`, 'gi');
+  const styleColor = new RegExp(`(fill|stroke)\\s*:\\s*${blackColor}`, 'gi');
+
+  // Replace explicit black fills/strokes with currentColor.
+  svg = svg.replace(attrColor, '$1=$2currentColor$2');
+  // Handle inline styles and SVG <style> rules.
+  svg = svg.replace(styleColor, '$1:currentColor');
   // Set default fill on SVG root for elements that inherit (no explicit fill → default black)
   svg = svg.replace(/<svg([^>]*)>/, (match, attrs) => {
-    if (/\bfill\s*=/.test(attrs)) return match;
-    return `<svg${attrs} fill="currentColor">`;
+    const nextAttrs = /\bfill\s*=/.test(attrs) ? attrs : `${attrs} fill="currentColor"`;
+    return /\bcolor\s*=/.test(nextAttrs)
+      ? `<svg${nextAttrs}>`
+      : `<svg${nextAttrs} color="currentColor">`;
   });
   return svg;
 }

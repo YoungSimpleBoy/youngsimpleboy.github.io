@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MIDI 可视化播放器</title>
     <link rel="stylesheet" href="css/visualizer.css">
+    <link rel="stylesheet" href="css/toolkit-shared.css">
     <script src="https://unpkg.com/tone@14.7.77/build/Tone.js"></script>
     <script src="https://unpkg.com/@tonejs/midi"></script>
     <!-- 用于GBK解码的encoding.js -->
@@ -13,9 +14,11 @@
 <body>
     <div class="header">
         <h1>MIDI 可视化播放器</h1>
-        <div class="header-actions">
-            <a class="tool-link" href="piano.html">模拟钢琴</a>
-            <button class="theme-toggle" id="themeToggle" title="切换主题">
+        <nav class="header-actions toolkit-page-nav" aria-label="MIDI 工具导航">
+            <a class="toolkit-nav-link" href="index.html" aria-current="page">可视化播放器</a>
+            <a class="toolkit-nav-link" href="score_demo.html">五线谱工具</a>
+            <a class="toolkit-nav-link" href="piano.html">模拟钢琴</a>
+            <button class="toolkit-theme-toggle" id="themeToggle" type="button" title="切换主题" aria-label="切换主题">
                 <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <circle cx="12" cy="12" r="5"/>
                     <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
@@ -24,7 +27,7 @@
                     <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
                 </svg>
             </button>
-        </div>
+        </nav>
     </div>
     
     <div class="canvas-wrapper" id="canvasWrapper">

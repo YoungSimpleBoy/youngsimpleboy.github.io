@@ -1,0 +1,254 @@
+/* ==================== CSS Variables ==================== */
+:root {
+    --bg-primary: #111;
+    --bg-secondary: #1a1a1a;
+    --bg-hover: #222;
+    --text-primary: #fff;
+    --text-secondary: #888;
+    --text-muted: #666;
+    --border-color: #333;
+    --accent: #667eea;
+    --accent-hover: #764ba2;
+
+    --upload-btn-bg: rgba(255, 255, 255, 0.1);
+    --upload-btn-border: rgba(255, 255, 255, 0.3);
+    --upload-btn-hover: rgba(255, 255, 255, 0.2);
+    --select-bg: rgba(255, 255, 255, 0.05);
+    --select-border: rgba(255, 255, 255, 0.15);
+    --select-text: #eee;
+    --select-hover-bg: rgba(255, 255, 255, 0.1);
+    --slider-bg: rgba(255, 255, 255, 0.2);
+    --progress-bg: rgba(255, 255, 255, 0.2);
+    --switch-bg: rgba(255, 255, 255, 0.2);
+}
+
+.light {
+    --bg-primary: #f5f5f5;
+    --bg-secondary: #fff;
+    --bg-hover: #e8e8e8;
+    --text-primary: #1a1a1a;
+    --text-secondary: #555;
+    --text-muted: #888;
+    --border-color: #ddd;
+    --accent: #667eea;
+    --accent-hover: #764ba2;
+
+    --upload-btn-bg: rgba(102, 126, 234, 0.1);
+    --upload-btn-border: rgba(102, 126, 234, 0.3);
+    --upload-btn-hover: rgba(102, 126, 234, 0.2);
+    --select-bg: rgba(102, 126, 234, 0.05);
+    --select-border: rgba(102, 126, 234, 0.2);
+    --select-text: #333;
+    --select-hover-bg: rgba(102, 126, 234, 0.1);
+    --slider-bg: rgba(102, 126, 234, 0.2);
+    --progress-bg: rgba(102, 126, 234, 0.2);
+    --switch-bg: rgba(102, 126, 234, 0.2);
+}
+
+/* ==================== Reset & Base ==================== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* ==================== Header ==================== */
+.header {
+    width: 95%;
+    max-width: 1440px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    gap: 20px;
+}
+
+/* Inside a page-wrapper, fill full width (wrapper already constrains it) */
+.page-wrapper .header {
+    width: 100%;
+    max-width: none;
+}
+
+.header h1 {
+    font-size: 1.5rem;
+    font-weight: 300;
+    letter-spacing: 0.1em;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+/* ==================== Navigation ==================== */
+.toolkit-page-nav {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.toolkit-nav-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 36px;
+    padding: 8px 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--upload-btn-bg);
+    color: var(--text-primary);
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.toolkit-nav-link:hover {
+    border-color: var(--accent);
+    background: var(--upload-btn-hover);
+    transform: translateY(-1px);
+}
+
+.toolkit-nav-link[aria-current="page"] {
+    border-color: transparent;
+    background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+    color: #fff;
+    box-shadow: 0 8px 22px rgba(102, 126, 234, 0.24);
+}
+
+/* ==================== Theme Toggle ==================== */
+.toolkit-theme-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 38px;
+    min-height: 38px;
+    padding: 8px;
+    border: 1px solid var(--border-color);
+    border-radius: 999px;
+    background: var(--bg-hover);
+    color: var(--text-secondary);
+    cursor: pointer;
+    font: inherit;
+    line-height: 1;
+    transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.toolkit-theme-toggle:hover {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: #fff;
+    transform: translateY(-1px);
+}
+
+.toolkit-theme-toggle svg {
+    width: 20px;
+    height: 20px;
+}
+
+.sun-icon { display: block; }
+.moon-icon { display: none; }
+.light .sun-icon { display: none; }
+.light .moon-icon { display: block; }
+
+/* ==================== Footer ==================== */
+.footer {
+    width: 95%;
+    max-width: 1440px;
+    margin-top: 40px;
+    padding: 20px 0;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.footer-links {
+    display: flex;
+    gap: 24px;
+    align-items: center;
+}
+
+.footer-links a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    transition: color 0.2s ease;
+}
+
+.footer-links a:hover {
+    color: var(--accent);
+}
+
+.footer-links svg {
+    width: 16px;
+    height: 16px;
+}
+
+.copyright {
+    color: var(--text-muted);
+    font-size: 12px;
+}
+
+/* ==================== Responsive ==================== */
+@media (max-width: 768px) {
+    body {
+        padding: 5px;
+    }
+
+    .header {
+        width: 100%;
+        margin-bottom: 15px;
+    }
+
+    .header h1 {
+        font-size: 1.2rem;
+    }
+
+    .footer-links {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+        text-align: center;
+    }
+
+    .footer-links a {
+        justify-content: center;
+    }
+}
+
+@media (max-width: 640px) {
+    .toolkit-page-nav {
+        justify-content: flex-start;
+        gap: 8px;
+    }
+
+    .toolkit-nav-link {
+        min-height: 32px;
+        padding: 7px 10px;
+        font-size: 12px;
+    }
+
+    .toolkit-theme-toggle {
+        min-width: 34px;
+        min-height: 34px;
+        padding: 7px;
+    }
+}
