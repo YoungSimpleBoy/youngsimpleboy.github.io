@@ -117,6 +117,160 @@
             : (flatKeys[Math.abs(keyFifths)] || 'C');
     }
 
+    function readVariableLength(bytes, state, end) {
+        let value = 0;
+        while (state.offset < end) {
+            const byte = bytes[state.offset++];
+            value = (value << 7) | (byte & 0x7F);
+            if ((byte & 0x80) === 0) break;
+        }
+        return value;
+    }
+
+    function parseRawMidiTrackSummaries(arrayBuffer) {
+        if (!arrayBuffer) return [];
+
+        const bytes = arrayBuffer instanceof Uint8Array
+            ? arrayBuffer
+            : new Uint8Array(arrayBuffer);
+        if (bytes.length < 14) return [];
+
+        function readString(offset, length) {
+            return String.fromCharCode(...bytes.slice(offset, offset + length));
+        }
+
+        function readUInt32(offset) {
+            return (
+                (bytes[offset] << 24) |
+                (bytes[offset + 1] << 16) |
+                (bytes[offset + 2] << 8) |
+                bytes[offset + 3]
+            ) >>> 0;
+        }
+
+        if (readString(0, 4) !== 'MThd') return [];
+        const headerLength = readUInt32(4);
+        let offset = 8 + headerLength;
+        const summaries = [];
+
+        while (offset + 8 <= bytes.length) {
+            if (readString(offset, 4) !== 'MTrk') break;
+            const trackIndex = summaries.length;
+            const trackLength = readUInt32(offset + 4);
+            offset += 8;
+            const end = Math.min(bytes.length, offset + trackLength);
+            const state = { offset };
+            let tick = 0;
+            let runningStatus = 0;
+            const summary = {
+                rawTrackIndex: trackIndex,
+                channel: null,
+                firstNoteTick: null,
+                noteCount: 0,
+                program: null
+            };
+
+            while (state.offset < end) {
+                tick += readVariableLength(bytes, state, end);
+                if (state.offset >= end) break;
+
+                let status = bytes[state.offset++];
+                if (status < 0x80) {
+                    state.offset--;
+                    status = runningStatus;
+                } else if (status < 0xF0) {
+                    runningStatus = status;
+                }
+
+                if (status === 0xFF) {
+                    state.offset++;
+                    const length = readVariableLength(bytes, state, end);
+                    state.offset = Math.min(end, state.offset + length);
+                    continue;
+                }
+
+                if (status === 0xF0 || status === 0xF7) {
+                    const length = readVariableLength(bytes, state, end);
+                    state.offset = Math.min(end, state.offset + length);
+                    continue;
+                }
+
+                const messageType = status & 0xF0;
+                const channel = status & 0x0F;
+                if (messageType === 0xC0 || messageType === 0xD0) {
+                    const value = bytes[state.offset++];
+                    if (messageType === 0xC0 && summary.program === null) {
+                        summary.program = value;
+                    }
+                    continue;
+                }
+
+                const note = bytes[state.offset++];
+                const velocity = bytes[state.offset++];
+                if (messageType === 0x90 && velocity > 0) {
+                    summary.noteCount++;
+                    if (summary.channel === null) summary.channel = channel;
+                    if (summary.firstNoteTick === null) summary.firstNoteTick = tick;
+                }
+            }
+
+            summaries.push(summary);
+            offset = end;
+        }
+
+        return summaries;
+    }
+
+    function getTrackPrimaryChannel(track) {
+        const channel = track?.notes?.[0]?.channel;
+        return Number.isInteger(channel) ? channel : null;
+    }
+
+    function createMidiTrackOrder(midi, arrayBuffer = null) {
+        const playableTracks = midi.tracks
+            .map((track, index) => ({ track, index }))
+            .filter(item => item.track.notes.length > 0);
+        if (!arrayBuffer) return playableTracks.map(item => item.index);
+
+        const rawTracks = parseRawMidiTrackSummaries(arrayBuffer)
+            .filter(track => track.noteCount > 0);
+        if (rawTracks.length !== playableTracks.length) {
+            return playableTracks.map(item => item.index);
+        }
+
+        const used = new Set();
+        const orderedIndexes = [];
+        for (const rawTrack of rawTracks) {
+            const candidates = playableTracks.filter(item => (
+                !used.has(item.index) &&
+                getTrackPrimaryChannel(item.track) === rawTrack.channel
+            ));
+
+            let match = candidates.find(item => item.track.notes.length === rawTrack.noteCount) ||
+                candidates[0];
+            if (!match) {
+                return playableTracks.map(item => item.index);
+            }
+
+            used.add(match.index);
+            orderedIndexes.push(match.index);
+        }
+
+        return orderedIndexes;
+    }
+
+    function getOrderedPlayableTracks(midi, trackOrder = null) {
+        const fallback = midi.tracks
+            .map((track, index) => ({ track, index }))
+            .filter(item => item.track.notes.length > 0);
+        if (!Array.isArray(trackOrder) || trackOrder.length === 0) return fallback;
+
+        const ordered = trackOrder
+            .map(index => ({ track: midi.tracks[index], index }))
+            .filter(item => item.track?.notes?.length > 0);
+        return ordered.length === fallback.length ? ordered : fallback;
+    }
+
     function extractMidiMeta(midi, fileName) {
         const tempos = midi.header.tempos || [];
         const timeSignatures = midi.header.timeSignatures || [];
@@ -141,15 +295,13 @@
         };
     }
 
-    function extractNotes(midi) {
+    function extractNotes(midi, trackOrder = null) {
         const notes = [];
         let minMidi = 127;
         let maxMidi = 0;
         let trackIndex = 0;
 
-        midi.tracks.forEach(track => {
-            if (track.notes.length === 0) return;
-
+        getOrderedPlayableTracks(midi, trackOrder).forEach(({ track }) => {
             track.notes.forEach(note => {
                 notes.push({
                     midi: note.midi,
@@ -256,7 +408,7 @@
         return lines;
     }
 
-    function createPlaybackSource(midi, arrayBuffer) {
+    function createPlaybackSource(midi, arrayBuffer, trackOrder = null) {
         const ppq = midi.header.ppq || 480;
         const tempos = (midi.header.tempos || [])
             .map(tempo => ({
@@ -309,9 +461,8 @@
         return {
             data: arrayBuffer.slice(0),
             ppq,
-            trackChannels: midi.tracks
-                .filter(track => track.notes.length > 0)
-                .map(track => {
+            trackChannels: getOrderedPlayableTracks(midi, trackOrder)
+                .map(({ track }) => {
                     const channel = track.notes[0]?.channel;
                     return Number.isInteger(channel) ? channel : null;
                 }),
@@ -324,9 +475,11 @@
         GM_PROGRAM_IDS,
         GM_PROGRAM_NAMES,
         createPlaybackSource,
+        createMidiTrackOrder,
         extractMidiMeta,
         extractNotes,
         getInstrumentNameFromTrack,
+        getOrderedPlayableTracks,
         getKeySignatureName,
         getTrackProgramInfo,
         midiToNoteName,

@@ -199,6 +199,7 @@ input[type=range]:hover::-webkit-slider-thumb {
     max-width: 1440px;
     position: relative;
     border-radius: 12px;
+    overflow: hidden;
 }
 
 .canvas-wrapper.fullscreen {
@@ -241,7 +242,7 @@ input[type=range]:hover::-webkit-slider-thumb {
     display: block;
     transition: background-color 0.3s ease, box-shadow 0.3s ease;
     width: 100%;
-    max-width: none;
+    max-width: 100%;
 }
 
 /* ==================== 底部信息 ==================== */
@@ -459,14 +460,14 @@ input[type=range]:hover::-webkit-slider-thumb {
 
 .audio-engine-control {
     display: grid !important;
-    grid-template-columns: 72px minmax(210px, 1fr) minmax(110px, auto) !important;
+    grid-template-columns: 72px minmax(0, 1fr) minmax(96px, auto) !important;
     align-items: center;
     gap: 10px;
-    min-width: 430px;
+    min-width: 0;
 }
 
 .audio-engine-control .custom-select {
-    min-width: 210px;
+    min-width: 0;
 }
 
 .audio-engine-control #audioEngineState {
@@ -1065,7 +1066,7 @@ input:checked+.checkmark:before {
     }
 
     .audio-engine-control {
-        grid-template-columns: 64px minmax(190px, 1fr) !important;
+        grid-template-columns: 64px minmax(0, 1fr) !important;
         min-width: 100%;
     }
 

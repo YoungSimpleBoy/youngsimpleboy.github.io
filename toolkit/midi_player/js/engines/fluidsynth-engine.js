@@ -4,19 +4,32 @@
     const DEFAULT_LIBRARY_BUNDLES = [
         {
             runtimeUrl: 'https://cdn.jsdelivr.net/npm/js-synthesizer@1.13.0/externals/libfluidsynth-2.4.6.js',
-            wrapperUrl: 'https://cdn.jsdelivr.net/npm/js-synthesizer@1.13.0/dist/js-synthesizer.min.js'
+            wrapperUrl: 'https://cdn.jsdelivr.net/npm/js-synthesizer@1.13.0/dist/js-synthesizer.min.js',
+            workletUrls: [
+                'https://cdn.jsdelivr.net/npm/js-synthesizer@1.13.0/dist/js-synthesizer.worklet.min.js',
+                'https://cdn.jsdelivr.net/npm/js-synthesizer@1.13.0/dist/js-synthesizer.worklet.js'
+            ]
         },
         {
             runtimeUrl: 'https://unpkg.com/js-synthesizer@1.13.0/externals/libfluidsynth-2.4.6.js',
-            wrapperUrl: 'https://unpkg.com/js-synthesizer@1.13.0/dist/js-synthesizer.min.js'
+            wrapperUrl: 'https://unpkg.com/js-synthesizer@1.13.0/dist/js-synthesizer.min.js',
+            workletUrls: [
+                'https://unpkg.com/js-synthesizer@1.13.0/dist/js-synthesizer.worklet.min.js',
+                'https://unpkg.com/js-synthesizer@1.13.0/dist/js-synthesizer.worklet.js'
+            ]
         }
     ];
     const DEFAULT_SOUNDFONT_URLS = [
+        'soundfonts/Arachno.sf2',
         'soundfonts/GeneralUser-GS.sf2'
     ];
     const SCHEDULE_INTERVAL_MS = 25;
     const SCHEDULE_AHEAD_SECONDS = 0.12;
     const PLAYER_MONITOR_INTERVAL_MS = 25;
+    const SOUNDFONT_FETCH_TIMEOUT_MS = 90000;
+    const SOUNDFONT_LOAD_TIMEOUT_MS = 15000;
+    const SOUNDFONT_PROGRESS_INTERVAL_MS = 250;
+    const ENABLE_WORKLET_STORAGE_KEY = 'midiPlayerEnableFluidSynthWorklet';
     const MELODIC_CHANNELS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15];
     const INSTRUMENT_PROGRAMS = {
         piano: 0,
@@ -77,7 +90,7 @@
                 }
 
                 await global.JSSynth.waitForReady();
-                return;
+                return bundle;
             } catch (error) {
                 lastError = error;
             }
@@ -85,20 +98,121 @@
         throw lastError || new Error('FluidSynth 浏览器库加载失败');
     }
 
-    async function fetchFirstAvailable(urls) {
+    function formatMegabytes(bytes) {
+        return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+    }
+
+    function now() {
+        return global.performance?.now?.() ?? Date.now();
+    }
+
+    function withTimeout(promise, timeoutMs, message) {
+        let timeout = 0;
+        const timeoutPromise = new Promise((resolve, reject) => {
+            timeout = global.setTimeout(() => reject(new Error(message)), timeoutMs);
+        });
+        return Promise.race([Promise.resolve(promise), timeoutPromise])
+            .finally(() => {
+                if (timeout) global.clearTimeout(timeout);
+            });
+    }
+
+    async function fetchArrayBufferWithProgress(url, onProgress) {
+        const Controller = global.AbortController;
+        const controller = Controller ? new Controller() : null;
+        const timeout = controller
+            ? global.setTimeout(() => controller.abort(), SOUNDFONT_FETCH_TIMEOUT_MS)
+            : 0;
+
+        try {
+            const response = await fetch(url, controller ? { signal: controller.signal } : undefined);
+            if (!response.ok) {
+                throw new Error(`SoundFont 下载失败 (${response.status})`);
+            }
+
+            const total = parseInt(response.headers?.get?.('content-length') || '0', 10) || 0;
+            onProgress?.({ url, loaded: 0, total, done: false });
+
+            if (!response.body || typeof response.body.getReader !== 'function') {
+                const buffer = await response.arrayBuffer();
+                onProgress?.({
+                    url,
+                    loaded: buffer.byteLength,
+                    total: total || buffer.byteLength,
+                    done: true
+                });
+                return buffer;
+            }
+
+            const reader = response.body.getReader();
+            const chunks = [];
+            let loaded = 0;
+            let lastProgressAt = 0;
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                if (!value) continue;
+
+                chunks.push(value);
+                loaded += value.byteLength;
+
+                const currentTime = now();
+                if (
+                    currentTime - lastProgressAt >= SOUNDFONT_PROGRESS_INTERVAL_MS ||
+                    (total > 0 && loaded >= total)
+                ) {
+                    onProgress?.({ url, loaded, total, done: false });
+                    lastProgressAt = currentTime;
+                }
+            }
+
+            const result = new Uint8Array(loaded);
+            let offset = 0;
+            chunks.forEach(chunk => {
+                result.set(chunk, offset);
+                offset += chunk.byteLength;
+            });
+            onProgress?.({ url, loaded, total: total || loaded, done: true });
+            return result.buffer;
+        } catch (error) {
+            if (error?.name === 'AbortError') {
+                throw new Error(`SoundFont 读取超时（${SOUNDFONT_FETCH_TIMEOUT_MS / 1000} 秒）`);
+            }
+            throw error;
+        } finally {
+            if (timeout) global.clearTimeout(timeout);
+        }
+    }
+
+    function appendLocalFileHint(message) {
+        if (global.location?.protocol !== 'file:') return message;
+        return `${message}。当前页面是 file:// 打开的，浏览器可能无法读取本地 sf2；请用本地 HTTP 服务打开页面。`;
+    }
+
+    function shouldEnableAudioWorklet(options) {
+        if (options.preferAudioWorklet !== undefined) {
+            return Boolean(options.preferAudioWorklet);
+        }
+
+        try {
+            return global.localStorage?.getItem(ENABLE_WORKLET_STORAGE_KEY) === '1';
+        } catch (error) {
+            return false;
+        }
+    }
+
+    async function fetchFirstAvailable(urls, onProgress) {
         let lastError = null;
         for (const url of urls) {
             try {
-                const response = await fetch(url);
-                if (!response.ok) {
-                    throw new Error(`SoundFont 下载失败 (${response.status})`);
-                }
-                return response.arrayBuffer();
+                return await fetchArrayBufferWithProgress(url, onProgress);
             } catch (error) {
                 lastError = error;
             }
         }
-        throw lastError || new Error('SoundFont 下载失败');
+        const message = lastError?.message || 'SoundFont 下载失败';
+        throw new Error(appendLocalFileHint(message));
     }
 
     function clampMidi(value) {
@@ -131,12 +245,16 @@
             this.pendingTimers = new Set();
             this.playerMonitorTimer = 0;
             this.lastPlayerTick = 0;
+            this.cachedPlayerTick = 0;
+            this.playerTickRequestPending = false;
             this.generation = 0;
             this.onEnded = () => {};
             this.onLoop = () => {};
             this.readyPromise = null;
             this.audioContext = null;
             this.synth = null;
+            this.synthMode = 'script';
+            this.preferAudioWorklet = shouldEnableAudioWorklet(options);
             this.outputNode = null;
             this.gainNode = null;
             this.soundFontId = null;
@@ -228,7 +346,7 @@
 
         async initialize() {
             this.onStatus('正在加载 FluidSynth 播放引擎...');
-            await ensureFluidSynthLibrary(this.libraryBundles);
+            const activeBundle = await ensureFluidSynthLibrary(this.libraryBundles);
 
             const Synthesizer = global.JSSynth.Synthesizer;
 
@@ -238,28 +356,190 @@
             }
 
             this.audioContext = new AudioContextClass();
-            this.synth = new Synthesizer();
-            this.synth.init(this.audioContext.sampleRate);
-            if (typeof this.synth.setPolyphony === 'function') {
-                this.synth.setPolyphony(512);
-            }
-            this.outputNode = this.synth.createAudioNode(this.audioContext, 4096);
+            const synthOutput = await this.createSynthOutput(Synthesizer, activeBundle);
+            this.synth = synthOutput.synth;
+            this.synthMode = synthOutput.mode;
+            this.outputNode = synthOutput.outputNode;
             this.gainNode = this.audioContext.createGain();
             this.outputNode.connect(this.gainNode);
             this.gainNode.connect(this.audioContext.destination);
             this.setVolume(this.volume);
 
-            this.onStatus('正在下载高质量 SoundFont（约 30 MB）...');
-            const soundFontData = await fetchFirstAvailable(this.soundFontUrls);
-            this.soundFontId = await this.synth.loadSFont(soundFontData);
+            this.onStatus('正在读取高质量 SoundFont...');
+            const soundFontData = await fetchFirstAvailable(
+                this.soundFontUrls,
+                progress => this.reportSoundFontProgress(progress)
+            );
+            await this.loadSoundFontData(soundFontData, Synthesizer);
             this.configurePrograms();
-            this.onStatus('FluidSynth 高质量音色已就绪');
+            this.onStatus(
+                this.synthMode === 'worklet'
+                    ? 'FluidSynth 高质量音色已就绪（AudioWorklet）'
+                    : 'FluidSynth 高质量音色已就绪（兼容模式）'
+            );
+        }
+
+        async createSynthOutput(Synthesizer, activeBundle) {
+            const workletOutput = await this.tryCreateWorkletSynth(activeBundle);
+            if (workletOutput) return workletOutput;
+
+            const synth = new Synthesizer();
+            synth.init(this.audioContext.sampleRate);
+            if (typeof synth.setPolyphony === 'function') {
+                synth.setPolyphony(512);
+            }
+            return {
+                synth,
+                mode: 'script',
+                outputNode: synth.createAudioNode(this.audioContext, 4096)
+            };
+        }
+
+        async tryCreateWorkletSynth(activeBundle) {
+            if (!this.preferAudioWorklet) return null;
+
+            const WorkletSynth = global.JSSynth?.AudioWorkletNodeSynthesizer;
+            if (!WorkletSynth || !this.audioContext?.audioWorklet) return null;
+
+            try {
+                await this.loadWorkletProcessor(WorkletSynth, activeBundle);
+                const synth = new WorkletSynth();
+                const outputNode = await Promise.resolve(synth.createAudioNode(this.audioContext, {
+                    'synth.sample-rate': this.audioContext.sampleRate,
+                    'synth.polyphony': 512
+                }));
+                return { synth, mode: 'worklet', outputNode };
+            } catch (error) {
+                console.warn('AudioWorklet FluidSynth 初始化失败，回退到兼容模式:', error);
+                this.onStatus('AudioWorklet 初始化失败，已切换到兼容模式...');
+                return null;
+            }
+        }
+
+        async loadWorkletProcessor(WorkletSynth, activeBundle) {
+            let lastError = null;
+            if (typeof WorkletSynth.registerAudioWorkletProcessor === 'function') {
+                try {
+                    await WorkletSynth.registerAudioWorkletProcessor(this.audioContext);
+                    return;
+                } catch (error) {
+                    lastError = error;
+                }
+            }
+
+            const workletUrls = activeBundle?.workletUrls || [];
+            for (const url of workletUrls) {
+                try {
+                    await this.audioContext.audioWorklet.addModule(url);
+                    return;
+                } catch (error) {
+                    lastError = error;
+                }
+            }
+            throw lastError || new Error('当前 js-synthesizer 没有可用的 AudioWorklet 处理器');
+        }
+
+        reportSoundFontProgress(progress) {
+            const isRemote = /^https?:\/\//i.test(progress.url || '');
+            const action = isRemote ? '下载' : '读取本地';
+
+            if (progress.done) {
+                this.onStatus(
+                    isRemote
+                        ? 'SoundFont 已下载，正在载入 FluidSynth...'
+                        : '本地 SoundFont 已读取，正在载入 FluidSynth...'
+                );
+                return;
+            }
+
+            if (progress.total > 0) {
+                const percent = Math.min(100, Math.round(progress.loaded / progress.total * 100));
+                this.onStatus(
+                    `正在${action} SoundFont：${percent}% ` +
+                    `(${formatMegabytes(progress.loaded)} / ${formatMegabytes(progress.total)})`
+                );
+                return;
+            }
+
+            if (progress.loaded > 0) {
+                this.onStatus(`正在${action} SoundFont：已读取 ${formatMegabytes(progress.loaded)}`);
+                return;
+            }
+
+            this.onStatus(`正在${action} SoundFont...`);
+        }
+
+        async loadSoundFontData(soundFontData, Synthesizer) {
+            try {
+                const loadData =
+                    this.synthMode === 'worklet' && typeof soundFontData?.slice === 'function'
+                        ? soundFontData.slice(0)
+                        : soundFontData;
+                this.soundFontId = await withTimeout(
+                    this.synth.loadSFont(loadData),
+                    SOUNDFONT_LOAD_TIMEOUT_MS,
+                    `FluidSynth SoundFont 载入超时（${SOUNDFONT_LOAD_TIMEOUT_MS / 1000} 秒）`
+                );
+                return;
+            } catch (error) {
+                if (this.synthMode !== 'worklet') throw error;
+
+                console.warn('AudioWorklet SoundFont 载入失败，回退到兼容模式:', error);
+                this.onStatus('AudioWorklet 载入 SoundFont 失败，正在回退兼容模式...');
+                await this.switchToScriptSynth(Synthesizer);
+                this.soundFontId = await withTimeout(
+                    this.synth.loadSFont(soundFontData),
+                    SOUNDFONT_LOAD_TIMEOUT_MS,
+                    `兼容模式 SoundFont 载入超时（${SOUNDFONT_LOAD_TIMEOUT_MS / 1000} 秒）`
+                );
+            }
+        }
+
+        async switchToScriptSynth(Synthesizer) {
+            const previousSynth = this.synth;
+            const previousOutputNode = this.outputNode;
+
+            try {
+                previousSynth?.stopPlayer?.();
+                await Promise.resolve(previousSynth?.close?.());
+            } catch (error) {
+                console.warn('AudioWorklet FluidSynth 清理失败:', error);
+            }
+
+            try {
+                previousOutputNode?.disconnect();
+            } catch (error) {
+                console.warn('AudioWorklet 输出节点断开失败:', error);
+            }
+
+            const synth = new Synthesizer();
+            synth.init(this.audioContext.sampleRate);
+            if (typeof synth.setPolyphony === 'function') {
+                synth.setPolyphony(512);
+            }
+            const outputNode = synth.createAudioNode(this.audioContext, 4096);
+            outputNode.connect(this.gainNode);
+
+            this.synth = synth;
+            this.synthMode = 'script';
+            this.outputNode = outputNode;
+            this.soundFontId = null;
+            this.playerLoadedRevision = -1;
+            this.cachedPlayerTick = 0;
+            this.playerTickRequestPending = false;
+        }
+
+        async dispose() {
+            this.stop(false);
+            await this.disposeRuntime();
+            this.readyPromise = null;
         }
 
         async disposeRuntime() {
             this.clearPlayerMonitor();
             this.synth?.stopPlayer?.();
             try {
+                await Promise.resolve(this.synth?.close?.());
                 this.outputNode?.disconnect();
                 this.gainNode?.disconnect();
                 if (this.audioContext && this.audioContext.state !== 'closed') {
@@ -271,10 +551,13 @@
 
             this.audioContext = null;
             this.synth = null;
+            this.synthMode = 'script';
             this.outputNode = null;
             this.gainNode = null;
             this.soundFontId = null;
             this.playerLoadedRevision = -1;
+            this.cachedPlayerTick = 0;
+            this.playerTickRequestPending = false;
         }
 
         resolveTrackInstrumentType(track) {
@@ -416,7 +699,10 @@
                 this.synth?.stopPlayer();
                 if (resetToStart) this.position = 0;
                 if (this.synth && this.playerLoadedRevision === this.sourceRevision) {
-                    this.synth.seekPlayer(this.secondsToTicks(this.position));
+                    const tick = this.secondsToTicks(this.position);
+                    this.synth.seekPlayer(tick);
+                    this.lastPlayerTick = tick;
+                    this.cachedPlayerTick = tick;
                 }
                 return this.position;
             }
@@ -436,6 +722,7 @@
                     const tick = this.secondsToTicks(this.position);
                     this.synth.seekPlayer(tick);
                     this.lastPlayerTick = tick;
+                    this.cachedPlayerTick = tick;
                 }
                 if (this.running && this.audioContext) {
                     this.startedAt = this.audioContext.currentTime;
@@ -495,7 +782,10 @@
             this.installPlayerEventHook();
             this.playerLoadedRevision = revision;
             this.applyPlayerSettings();
-            this.synth.seekPlayer(this.secondsToTicks(this.position));
+            const tick = this.secondsToTicks(this.position);
+            this.synth.seekPlayer(tick);
+            this.lastPlayerTick = tick;
+            this.cachedPlayerTick = tick;
         }
 
         installPlayerEventHook() {
@@ -541,6 +831,7 @@
             const startTick = this.secondsToTicks(this.position);
             this.synth.seekPlayer(startTick);
             this.lastPlayerTick = startTick;
+            this.cachedPlayerTick = startTick;
             this.applyPlayerSettings();
 
             this.running = true;
@@ -555,7 +846,7 @@
         monitorMidiPlayer(generation) {
             if (!this.running || generation !== this.generation) return;
 
-            const tick = this.synth.getPlayerCurrentTick();
+            const tick = this.readPlayerCurrentTick();
             if (
                 this.loopEnabled &&
                 Number.isFinite(tick) &&
@@ -567,7 +858,7 @@
             }
             if (Number.isFinite(tick)) this.lastPlayerTick = tick;
 
-            if (!this.synth.isPlayerPlaying()) {
+            if (!this.isPlayerStillPlaying()) {
                 this.running = false;
                 this.position = this.duration;
                 this.clearPlayerMonitor();
@@ -579,6 +870,46 @@
                 () => this.monitorMidiPlayer(generation),
                 PLAYER_MONITOR_INTERVAL_MS
             );
+        }
+
+        readPlayerCurrentTick() {
+            if (!this.synth) return NaN;
+
+            if (typeof this.synth.getPlayerCurrentTick === 'function') {
+                const tick = this.synth.getPlayerCurrentTick();
+                if (Number.isFinite(tick)) this.cachedPlayerTick = tick;
+                return tick;
+            }
+
+            if (
+                typeof this.synth.retrievePlayerCurrentTick === 'function' &&
+                !this.playerTickRequestPending
+            ) {
+                this.playerTickRequestPending = true;
+                Promise.resolve(this.synth.retrievePlayerCurrentTick())
+                    .then(tick => {
+                        if (Number.isFinite(tick)) this.cachedPlayerTick = tick;
+                    })
+                    .catch(error => {
+                        console.warn('FluidSynth 播放进度读取失败:', error);
+                    })
+                    .finally(() => {
+                        this.playerTickRequestPending = false;
+                    });
+            }
+
+            return this.cachedPlayerTick;
+        }
+
+        isPlayerStillPlaying() {
+            if (typeof this.synth?.isPlayerPlaying !== 'function') return true;
+
+            const isPlaying = this.synth.isPlayerPlaying();
+            const justStarted =
+                this.running &&
+                this.audioContext &&
+                this.audioContext.currentTime - this.startedAt < 0.25;
+            return isPlaying || justStarted;
         }
 
         clearPlayerMonitor() {

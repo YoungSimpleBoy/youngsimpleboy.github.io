@@ -1,9 +1,11 @@
 const {
     GM_PROGRAM_NAMES,
+    createMidiTrackOrder,
     createPlaybackSource,
     extractMidiMeta: readMidiMeta,
     extractNotes,
     getInstrumentNameFromTrack,
+    getOrderedPlayableTracks,
     getTrackProgramInfo,
     midiToNoteName,
     parseMidiGrid
@@ -14,7 +16,15 @@ const {
 // 功能: 一个MIDI播放与可视化组件
 // ==================== 配置 ====================
 function getDefaultCanvasSize() {
-    const width = window.innerWidth > 1440 ? 1440 : (window.innerWidth * 0.95);
+    const wrapper = document.getElementById('canvasWrapper');
+    const wrapperWidth = wrapper?.clientWidth || wrapper?.getBoundingClientRect().width || 0;
+    const bodyStyle = window.getComputedStyle(document.body);
+    const bodyPaddingX =
+        parseFloat(bodyStyle.paddingLeft || '0') +
+        parseFloat(bodyStyle.paddingRight || '0');
+    const viewportWidth = document.documentElement.clientWidth || window.innerWidth;
+    const availableWidth = Math.max(320, viewportWidth - bodyPaddingX);
+    const width = Math.min(1440, Math.floor(wrapperWidth || availableWidth));
     const height = window.innerWidth <= 768 ? width * 1.0 : 720;
     return { width, height };
 }
@@ -427,91 +437,91 @@ function initTrackPanel() {
     });
 }
 
-function extractTrackInfo(midi) {
+function extractTrackInfo(midi, trackOrder = null) {
     trackInfo = [];
     let trackIndex = 0;
 
-    midi.tracks.forEach((track, idx) => {
-        if (track.notes.length > 0) {
-            // 获取音轨名称，优先解码二进制，保留中文
-            let name = '';
-            if (track.name) {
-                // 多编码尝试，优先显示含中文的最长解码结果
-                let candidates = [];
-                let bytes = null;
-                if (typeof track.name === 'string') {
-                    candidates.push(track.name);
-                    let arr = [];
-                    for (let i = 0; i < track.name.length; i++) {
-                        arr.push(track.name.charCodeAt(i) & 0xFF);
-                    }
-                    bytes = new Uint8Array(arr);
-                } else if (track.name instanceof Uint8Array) {
-                    bytes = track.name;
-                } else if (track.name instanceof ArrayBuffer) {
-                    bytes = new Uint8Array(track.name);
-                } else if (Array.isArray(track.name)) {
-                    bytes = new Uint8Array(track.name);
+    getOrderedPlayableTracks(midi, trackOrder).forEach(({ track, index: sourceTrackIndex }) => {
+        // 获取音轨名称，优先解码二进制，保留中文
+        let name = '';
+        if (track.name) {
+            // 多编码尝试，优先显示含中文的最长解码结果
+            let candidates = [];
+            let bytes = null;
+            if (typeof track.name === 'string') {
+                candidates.push(track.name);
+                let arr = [];
+                for (let i = 0; i < track.name.length; i++) {
+                    arr.push(track.name.charCodeAt(i) & 0xFF);
                 }
-                if (bytes) {
-                    try {
-                        const decoder = new TextDecoder('utf-8');
-                        candidates.push(decoder.decode(bytes));
-                    } catch {}
-                    try {
-                        candidates.push(window.Encoding.convert(bytes, {to:'UNICODE',type:'string'}));
-                    } catch {}
-                    try {
-                        candidates.push(window.Encoding.convert(bytes, {to:'UNICODE',type:'string',from:'BIG5'}));
-                    } catch {}
+                bytes = new Uint8Array(arr);
+            } else if (track.name instanceof Uint8Array) {
+                bytes = track.name;
+            } else if (track.name instanceof ArrayBuffer) {
+                bytes = new Uint8Array(track.name);
+            } else if (Array.isArray(track.name)) {
+                bytes = new Uint8Array(track.name);
+            }
+            if (bytes) {
+                try {
+                    const decoder = new TextDecoder('utf-8');
+                    candidates.push(decoder.decode(bytes));
+                } catch {}
+                try {
+                    candidates.push(window.Encoding.convert(bytes, {to:'UNICODE',type:'string'}));
+                } catch {}
+                try {
+                    candidates.push(window.Encoding.convert(bytes, {to:'UNICODE',type:'string',from:'BIG5'}));
+                } catch {}
+            }
+            let best = '';
+            let maxLen = 0;
+            for (const s of candidates) {
+                if (!s) continue;
+                let cleaned = s.replace(/[\x00\u0000\0]/g, '').trim();
+                if (/[\u4e00-\u9fa5]/.test(cleaned) && cleaned.length > maxLen) {
+                    best = cleaned;
+                    maxLen = cleaned.length;
+                } else if (!best && cleaned.length > maxLen) {
+                    best = cleaned;
+                    maxLen = cleaned.length;
                 }
-                let best = '';
-                let maxLen = 0;
-                for (const s of candidates) {
-                    if (!s) continue;
-                    let cleaned = s.replace(/[\x00\u0000\0]/g, '').trim();
-                    if (/[\u4e00-\u9fa5]/.test(cleaned) && cleaned.length > maxLen) {
-                        best = cleaned;
-                        maxLen = cleaned.length;
-                    } else if (!best && cleaned.length > maxLen) {
-                        best = cleaned;
-                        maxLen = cleaned.length;
-                    }
-                }
-                name = best;
             }
-            if (!name || name === '') {
-                name = `音轨 ${trackIndex + 1}`;
-            }
-            const trackProgramInfo = getTrackProgramInfo(track, midi);
-            // 稳健提取乐器名：优先 @tonejs/midi 的 instrument.name，其次 program 映射
-            const instrumentName = getInstrumentNameFromTrack(track, midi);
-            // 不再拼接乐器名到name，乐器名单独存储
-            if (name.length > 20) {
-                name = name.substring(0, 17) + '...';
-            }
-            // 计算音轨音域
-            let minMidi = 127, maxMidi = 0;
-            track.notes.forEach(note => {
-                if (note.midi < minMidi) minMidi = note.midi;
-                if (note.midi > maxMidi) maxMidi = note.midi;
-            });
-            const noteRange = `${midiToNoteName(minMidi)} - ${midiToNoteName(maxMidi)}`;
-
-            trackInfo.push({
-                name: name,
-                instrumentName: instrumentName || '',
-                noteCount: track.notes.length,
-                noteRange: noteRange, // 占位
-                enabled: true,
-                volume: 1.0,
-                instrument: 'midi_auto', // 默认自动按 MIDI Program 分配
-                gmProgram: trackProgramInfo.program,
-                isPercussion: trackProgramInfo.isPercussion,
-                hue: trackHues[trackIndex % trackHues.length]
-            });
-            trackIndex++;
+            name = best;
         }
+        if (!name || name === '') {
+            name = `音轨 ${trackIndex + 1}`;
+        }
+        const trackProgramInfo = getTrackProgramInfo(track, midi);
+        // 稳健提取乐器名：优先 @tonejs/midi 的 instrument.name，其次 program 映射
+        const instrumentName = getInstrumentNameFromTrack(track, midi);
+        // 不再拼接乐器名到name，乐器名单独存储
+        if (name.length > 20) {
+            name = name.substring(0, 17) + '...';
+        }
+        // 计算音轨音域
+        let minMidi = 127, maxMidi = 0;
+        track.notes.forEach(note => {
+            if (note.midi < minMidi) minMidi = note.midi;
+            if (note.midi > maxMidi) maxMidi = note.midi;
+        });
+        const noteRange = `${midiToNoteName(minMidi)} - ${midiToNoteName(maxMidi)}`;
+
+        trackInfo.push({
+            name: name,
+            instrumentName: instrumentName || '',
+            noteCount: track.notes.length,
+            noteRange: noteRange, // 占位
+            enabled: true,
+            volume: 1.0,
+            instrument: 'midi_auto', // 默认自动按 MIDI Program 分配
+            gmProgram: trackProgramInfo.program,
+            isPercussion: trackProgramInfo.isPercussion,
+            sourceTrackIndex,
+            midiChannel: track.notes[0]?.channel ?? null,
+            hue: trackHues[trackIndex % trackHues.length]
+        });
+        trackIndex++;
     });
 
     initTrackPanel();
@@ -541,6 +551,94 @@ const FADE_SPEED = 0.05;       // 渐变速度，数值越大过渡越快
 // ==================== 音频 ====================
 let playbackRate = 1;
 let isGmLibraryExpanded = false;
+const SOUNDFONT_STORAGE_KEY = 'midiPlayerSoundFontUrl';
+const FLUIDSYNTH_SOUNDFONTS = [
+    {
+        optionValue: 'fluidsynth-arachno',
+        url: 'soundfonts/Arachno.sf2',
+        label: 'Arachno SoundFont',
+        shortLabel: 'Arachno SF2'
+    },
+    {
+        optionValue: 'fluidsynth-generaluser',
+        url: 'soundfonts/GeneralUser-GS.sf2',
+        label: 'GeneralUser GS',
+        shortLabel: 'GeneralUser GS'
+    }
+];
+
+function getSavedSoundFontUrl() {
+    try {
+        const savedUrl = localStorage.getItem(SOUNDFONT_STORAGE_KEY);
+        if (FLUIDSYNTH_SOUNDFONTS.some(item => item.url === savedUrl)) {
+            return savedUrl;
+        }
+    } catch (error) {
+        console.warn('读取 SoundFont 选择失败:', error);
+    }
+    return FLUIDSYNTH_SOUNDFONTS[0].url;
+}
+
+let currentFluidSynthSoundFontUrl = getSavedSoundFontUrl();
+
+function getSoundFontByUrl(url) {
+    return FLUIDSYNTH_SOUNDFONTS.find(item => item.url === url) || FLUIDSYNTH_SOUNDFONTS[0];
+}
+
+function parseAudioEngineSelection(value = audioEngineSelect?.value || 'tone') {
+    if (value === 'tone') {
+        return {
+            engineName: 'tone',
+            soundFontUrl: currentFluidSynthSoundFontUrl
+        };
+    }
+
+    const soundFont = FLUIDSYNTH_SOUNDFONTS.find(item => item.optionValue === value) ||
+        getSoundFontByUrl(currentFluidSynthSoundFontUrl);
+    return {
+        engineName: 'fluidsynth',
+        soundFontUrl: soundFont.url
+    };
+}
+
+function getAudioEngineSelectionValue(engineName = audioEngine.getActiveName()) {
+    if (engineName !== 'fluidsynth') return 'tone';
+    return getSoundFontByUrl(currentFluidSynthSoundFontUrl).optionValue;
+}
+
+function getSelectedSoundFontUrl() {
+    return parseAudioEngineSelection().soundFontUrl;
+}
+
+function getSoundFontLabel(url = getSelectedSoundFontUrl(), key = 'shortLabel') {
+    const soundFont = getSoundFontByUrl(url);
+    return soundFont?.[key] || soundFont?.label || '自定义 SoundFont';
+}
+
+function getFluidSynthSoundFontUrls(soundFontUrl = getSelectedSoundFontUrl()) {
+    const selectedUrl = soundFontUrl;
+    return [
+        selectedUrl,
+        ...FLUIDSYNTH_SOUNDFONTS
+            .map(item => item.url)
+            .filter(url => url !== selectedUrl)
+    ];
+}
+
+function getFluidSynthEngineOptions(soundFontUrl = getSelectedSoundFontUrl()) {
+    return {
+        soundFontUrls: getFluidSynthSoundFontUrls(soundFontUrl)
+    };
+}
+
+function saveSoundFontSelection(url) {
+    try {
+        localStorage.setItem(SOUNDFONT_STORAGE_KEY, url);
+    } catch (error) {
+        console.warn('保存 SoundFont 选择失败:', error);
+    }
+}
+
 const audioEngine = window.MidiPlayerAudio.createController({
     initial: 'tone',
     engineOptions: {
@@ -550,6 +648,7 @@ const audioEngine = window.MidiPlayerAudio.createController({
             }
         },
         fluidsynth: {
+            ...getFluidSynthEngineOptions(),
             onStatus(message) {
                 statusEl.textContent = message;
                 if (audioEngineState) audioEngineState.textContent = message;
@@ -564,8 +663,16 @@ function updatePlayButtonIcon(playing) {
         : '<polygon points="5,3 19,12 5,21"/>';
 }
 
-async function switchAudioEngine(engineName) {
-    if (!audioEngineSelect || engineName === audioEngine.getActiveName()) return;
+async function switchAudioEngine(selectionValue) {
+    if (!audioEngineSelect) return;
+
+    const selection = parseAudioEngineSelection(selectionValue);
+    const engineName = selection.engineName;
+    const soundFontUrl = selection.soundFontUrl;
+    const soundFontChanged =
+        engineName === 'fluidsynth' &&
+        soundFontUrl !== currentFluidSynthSoundFontUrl;
+    if (engineName === audioEngine.getActiveName() && !soundFontChanged) return;
 
     const previousName = audioEngine.getActiveName();
     const resumePosition = currentTime;
@@ -580,8 +687,18 @@ async function switchAudioEngine(engineName) {
     }
 
     try {
+        if (engineName === 'fluidsynth') {
+            saveSoundFontSelection(soundFontUrl);
+            await audioEngine.configureEngine(
+                'fluidsynth',
+                getFluidSynthEngineOptions(soundFontUrl)
+            );
+            currentFluidSynthSoundFontUrl = soundFontUrl;
+        }
+
+        const soundFontLabel = getSoundFontLabel(soundFontUrl);
         statusEl.textContent = engineName === 'fluidsynth'
-            ? '正在准备 FluidSynth 高质量模式...'
+            ? `正在准备 FluidSynth 高质量模式（${soundFontLabel}）...`
             : '正在切换至 Tone.js 快速模式...';
         if (audioEngineState) audioEngineState.textContent = '切换中...';
 
@@ -591,11 +708,11 @@ async function switchAudioEngine(engineName) {
         currentTime = audioEngine.seek(resumePosition);
         if (audioEngineState) {
             audioEngineState.textContent = engineName === 'fluidsynth'
-                ? 'GeneralUser GS'
+                ? soundFontLabel
                 : '即开即用';
         }
         statusEl.textContent = engineName === 'fluidsynth'
-            ? '已切换至 FluidSynth 高质量模式'
+            ? `已切换至 FluidSynth 高质量模式（${soundFontLabel}）`
             : '已切换至 Tone.js 快速模式';
 
         if (wasPlaying) await startPlay();
@@ -604,7 +721,7 @@ async function switchAudioEngine(engineName) {
         await audioEngine.switchTo(previousName === 'fluidsynth' ? 'tone' : previousName);
         audioEngine.load(notes, trackInfo);
         currentTime = audioEngine.seek(resumePosition);
-        audioEngineSelect.value = audioEngine.getActiveName();
+        audioEngineSelect.value = getAudioEngineSelectionValue(audioEngine.getActiveName());
         if (audioEngineState) audioEngineState.textContent = '已回退快速模式';
         statusEl.textContent = `高质量引擎加载失败，已回退 Tone.js：${error.message}`;
 
@@ -778,11 +895,12 @@ function stopAndClear() {
 }
 
 async function applyLoadedMidi(midi, arrayBuffer, fileName, statusName = fileName) {
+    const trackOrder = createMidiTrackOrder(midi, arrayBuffer);
     gridLines = parseMidiGrid(midi);
     extractMidiMeta(midi, fileName);
-    extractTrackInfo(midi);
+    extractTrackInfo(midi, trackOrder);
 
-    const parsed = extractNotes(midi);
+    const parsed = extractNotes(midi, trackOrder);
     notes = parsed.notes;
     maxNoteDuration = notes.reduce(
         (max, note) => Math.max(max, note.duration || 0),
@@ -790,7 +908,7 @@ async function applyLoadedMidi(midi, arrayBuffer, fileName, statusName = fileNam
     );
     totalDuration = parsed.duration;
     window.midiRange = parsed.range;
-    audioEngine.load(notes, trackInfo, createPlaybackSource(midi, arrayBuffer));
+    audioEngine.load(notes, trackInfo, createPlaybackSource(midi, arrayBuffer, trackOrder));
     let loadStatus = `已加载: ${statusName} (${notes.length} 个音符)`;
     try {
         await audioEngine.preloadTracks(trackInfo);

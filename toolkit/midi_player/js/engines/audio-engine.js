@@ -55,6 +55,31 @@
             }
         }
 
+        async configureEngine(name, options = {}) {
+            this.engineOptions[name] = {
+                ...(this.engineOptions[name] || {}),
+                ...options
+            };
+
+            const engine = this.engines.get(name);
+            if (!engine) return;
+
+            const isActive = name === this.activeName;
+            const position = isActive ? this.getCurrentTime() : 0;
+            if (typeof engine.stop === 'function') {
+                engine.stop(false);
+            }
+            if (typeof engine.dispose === 'function') {
+                await engine.dispose();
+            }
+            this.engines.delete(name);
+
+            if (isActive) {
+                this.activate(name);
+                this.activeEngine.seek(position);
+            }
+        }
+
         getActiveName() {
             return this.activeName;
         }
