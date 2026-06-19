@@ -341,6 +341,9 @@
             if (this.usesMidiPlayer() && this.synth) {
                 this.applyPlayerSettings();
                 this.position = position;
+                if (this.running && this.audioContext) {
+                    this.startedAt = this.audioContext.currentTime;
+                }
                 return position;
             }
 
@@ -434,6 +437,9 @@
                     this.synth.seekPlayer(tick);
                     this.lastPlayerTick = tick;
                 }
+                if (this.running && this.audioContext) {
+                    this.startedAt = this.audioContext.currentTime;
+                }
                 return this.position;
             }
 
@@ -444,18 +450,6 @@
         }
 
         getCurrentTime() {
-            if (
-                this.usesMidiPlayer() &&
-                this.synth &&
-                this.playerLoadedRevision === this.sourceRevision
-            ) {
-                const tick = this.synth.getPlayerCurrentTick();
-                if (Number.isFinite(tick) && tick >= 0) {
-                    this.position = this.ticksToSeconds(tick);
-                }
-                return this.position;
-            }
-
             if (!this.running || !this.audioContext) return this.position;
             return this.position +
                 (this.audioContext.currentTime - this.startedAt) * this.playbackRate;
@@ -550,6 +544,7 @@
             this.applyPlayerSettings();
 
             this.running = true;
+            this.startedAt = this.audioContext.currentTime;
             this.generation++;
             const generation = this.generation;
             this.clearPlayerMonitor();
@@ -566,6 +561,8 @@
                 Number.isFinite(tick) &&
                 tick < this.lastPlayerTick
             ) {
+                this.position = 0;
+                this.startedAt = this.audioContext.currentTime;
                 this.onLoop();
             }
             if (Number.isFinite(tick)) this.lastPlayerTick = tick;

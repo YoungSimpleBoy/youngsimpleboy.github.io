@@ -25,7 +25,7 @@ let SPEED = DEFAULT_SPEED;       // 速度：像素/秒（可调节）
 const THICKNESS = 8;   // 音符厚度
 const MARGIN = 20;      // 边距
 const FADE_TIME = 3.3;       // 音符淡出时间（秒）
-const FADE_IN_DIST = WIDTH; // 淡入距离（像素）
+const MAX_CANVAS_PIXEL_RATIO = 2;
 
 // ==================== DOM ====================
 const canvas = document.getElementById('canvas');
@@ -43,8 +43,27 @@ const audioEngineState = document.getElementById('audioEngineState');
 const statusEl = document.getElementById('status');
 const themeToggle = document.getElementById('themeToggle');
 
-canvas.width = WIDTH;
-canvas.height = HEIGHT;
+let canvasPixelRatio = 1;
+
+function getFadeInDistance() {
+    return WIDTH;
+}
+
+function getCanvasPixelRatio() {
+    const ratio = window.devicePixelRatio || 1;
+    return Math.max(1, Math.min(MAX_CANVAS_PIXEL_RATIO, ratio));
+}
+
+function applyCanvasResolution() {
+    canvasPixelRatio = getCanvasPixelRatio();
+    canvas.width = Math.round(WIDTH * canvasPixelRatio);
+    canvas.height = Math.round(HEIGHT * canvasPixelRatio);
+    canvas.style.width = `${WIDTH}px`;
+    canvas.style.height = `${HEIGHT}px`;
+    ctx.setTransform(canvasPixelRatio, 0, 0, canvasPixelRatio, 0, 0);
+}
+
+applyCanvasResolution();
 
 // ==================== 主题切换 ====================
 function isLightTheme() {
@@ -85,8 +104,7 @@ if (themeToggle) {
 function resizeCanvas(width, height) {
     WIDTH = Math.max(320, Math.round(width));
     HEIGHT = Math.max(240, Math.round(height));
-    canvas.width = WIDTH;
-    canvas.height = HEIGHT;
+    applyCanvasResolution();
 
     if (!isPlaying) {
         drawFrame(currentTime);
@@ -179,6 +197,7 @@ function midiToX(midi) {
 // ==================== 状态 ====================
 let notes = [];
 let gridLines = []; // 新增：用于存储基于 Tick 解析好的小节线
+let maxNoteDuration = 0;
 let isPlaying = false;
 let currentTime = 0;
 let totalDuration = 0;
@@ -188,6 +207,60 @@ let isLoopEnabled = false;
 // ==================== 音轨控制 ====================
 const trackHues = [200, 280, 120, 30, 320, 60]; // 音轨颜色
 let trackInfo = []; // 存储音轨信息: {name, noteCount, enabled, hue, minMidi, maxMidi}
+
+function lowerBoundByTime(items, target, getTime) {
+    let low = 0;
+    let high = items.length;
+    while (low < high) {
+        const middle = (low + high) >> 1;
+        if (getTime(items[middle]) < target) low = middle + 1;
+        else high = middle;
+    }
+    return low;
+}
+
+function upperBoundByTime(items, target, getTime) {
+    let low = 0;
+    let high = items.length;
+    while (low < high) {
+        const middle = (low + high) >> 1;
+        if (getTime(items[middle]) <= target) low = middle + 1;
+        else high = middle;
+    }
+    return low;
+}
+
+function getVisibleGridWindow(now, isHorizontal, hitX, hitY) {
+    if (gridLines.length === 0) return { start: 0, end: 0 };
+
+    const startTime = isHorizontal
+        ? now + (-20 - hitX) / SPEED
+        : now + (hitY - (HEIGHT + 20)) / SPEED;
+    const endTime = isHorizontal
+        ? now + (WIDTH + 20 - hitX) / SPEED
+        : now + (hitY + 20) / SPEED;
+
+    return {
+        start: lowerBoundByTime(gridLines, startTime, line => line.time),
+        end: upperBoundByTime(gridLines, endTime, line => line.time)
+    };
+}
+
+function getVisibleNoteWindow(now, isHorizontal, hitX, hitY) {
+    if (notes.length === 0) return { start: 0, end: 0 };
+
+    const fadeInDistance = getFadeInDistance();
+    const latestStart = isHorizontal
+        ? now + (WIDTH + fadeInDistance - hitX) / SPEED
+        : now + (hitY + fadeInDistance) / SPEED;
+    const earliestEnd = now - FADE_TIME;
+    const earliestStart = earliestEnd - maxNoteDuration;
+
+    return {
+        start: lowerBoundByTime(notes, earliestStart, note => note.time),
+        end: upperBoundByTime(notes, latestStart, note => note.time)
+    };
+}
 let midiMeta = null; // 存储文件级别的元信息
 
 function extractMidiMeta(midi, fileName) {
@@ -685,6 +758,7 @@ function resetPlaybackState(resetToStart = true) {
 function clearLoadedMidiData() {
     notes = [];
     gridLines = [];
+    maxNoteDuration = 0;
     totalDuration = 0;
     currentTime = 0;
     playBtn.disabled = true;
@@ -710,6 +784,10 @@ async function applyLoadedMidi(midi, arrayBuffer, fileName, statusName = fileNam
 
     const parsed = extractNotes(midi);
     notes = parsed.notes;
+    maxNoteDuration = notes.reduce(
+        (max, note) => Math.max(max, note.duration || 0),
+        0
+    );
     totalDuration = parsed.duration;
     window.midiRange = parsed.range;
     audioEngine.load(notes, trackInfo, createPlaybackSource(midi, arrayBuffer));
@@ -868,6 +946,12 @@ function midiToY(midi) {
 }
 
 function drawFrame(now) {
+    if (Math.abs(canvasPixelRatio - getCanvasPixelRatio()) > 0.001) {
+        applyCanvasResolution();
+    } else {
+        ctx.setTransform(canvasPixelRatio, 0, 0, canvasPixelRatio, 0, 0);
+    }
+
     // --- 动画平滑过渡逻辑 ---
     if (currentExtraInfoAlpha < targetExtraInfoAlpha) {
         currentExtraInfoAlpha = Math.min(1, currentExtraInfoAlpha + FADE_SPEED);
@@ -943,7 +1027,9 @@ function drawFrame(now) {
 
     // 画小节线
     if (shouldDrawExtra && gridLines.length > 0) {
-        gridLines.forEach(line => {
+        const gridWindow = getVisibleGridWindow(now, isHorizontal, hitX, hitY);
+        for (let lineIndex = gridWindow.start; lineIndex < gridWindow.end; lineIndex++) {
+            const line = gridLines[lineIndex];
             const timeDelta = line.time - now;
             if (isHorizontal) {
                 const x = hitX + timeDelta * SPEED;
@@ -979,24 +1065,27 @@ function drawFrame(now) {
                     }
                 }
             }
-        });
+        }
     }
 
     // 画音符
     const isMobile = window.innerWidth <= 768;
     const GLOW_BLUR = isMobile ? 10 : 30; // 手机端性能优化
+    const fadeInDistance = getFadeInDistance();
+    const noteWindow = getVisibleNoteWindow(now, isHorizontal, hitX, hitY);
 
-    notes.forEach(note => {
+    for (let noteIndex = noteWindow.start; noteIndex < noteWindow.end; noteIndex++) {
+        const note = notes[noteIndex];
         const timeDelta = note.time - now;
         const timeSinceEnd = now - (note.time + note.duration);
 
         // 音符完全消失后不再渲染
-        if (timeDelta > FADE_TIME + 0.5) return;
+        if (timeSinceEnd > FADE_TIME) continue;
 
         const length = note.duration * SPEED;
 
         // 检查音轨是否启用
-        if (trackInfo.length > 0 && !trackInfo[note.track]?.enabled) return;
+        if (trackInfo.length > 0 && !trackInfo[note.track]?.enabled) continue;
 
         // 计算颜色
         let hue, lightness, saturation;
@@ -1006,9 +1095,11 @@ function drawFrame(now) {
             lightness = isLight ? 70 + (1 - timeSinceEnd / FADE_TIME) * 15 : 30 + (1 - timeSinceEnd / FADE_TIME) * 20;
         } else {
             const trackHue = trackInfo.length > 0 && trackInfo[note.track] ? trackInfo[note.track].hue : trackHues[note.track % trackHues.length];
-            hue = trackHue + note.velocity * 20;
+            hue = trackHue;
             saturation = '100%';
-            lightness = isLight ? 50 : 65;
+            lightness = isLight
+                ? 46 + note.velocity * 10
+                : 58 + note.velocity * 10;
         }
 
         let alpha = 1;
@@ -1017,15 +1108,17 @@ function drawFrame(now) {
             const x = hitX + timeDelta * SPEED;
             const y = midiToY(note.midi);
 
-            if (x > WIDTH + FADE_IN_DIST) return;
+            if (x > WIDTH + fadeInDistance || x + length < -20) continue;
 
             if (timeSinceEnd > 0) alpha = Math.max(0, 1 - timeSinceEnd / FADE_TIME);
-            if (x > hitX && x < WIDTH) alpha = Math.max(0, (WIDTH - x) / FADE_IN_DIST);
+            if (x > hitX && x < WIDTH) alpha = Math.max(0, (WIDTH - x) / fadeInDistance);
 
             ctx.fillStyle = `hsla(${hue}, ${timeSinceEnd > 0 ? '0%' : saturation}, ${lightness}%, ${alpha})`;
             if (timeSinceEnd <= 0) {
                 ctx.shadowColor = ctx.fillStyle;
                 ctx.shadowBlur = GLOW_BLUR;
+            } else {
+                ctx.shadowBlur = 0;
             }
 
             ctx.beginPath();
@@ -1037,7 +1130,7 @@ function drawFrame(now) {
             const y = hitY - timeDelta * SPEED; // timeDelta > 0 意味着在未来（屏幕上方）
             const x = midiToX(note.midi);
 
-            if (y < -FADE_IN_DIST) return; // 超过屏幕上方太远则不渲染
+            if (y < -fadeInDistance || y - length > HEIGHT + 20) continue;
 
             if (timeSinceEnd > 0) alpha = Math.max(0, 1 - timeSinceEnd / FADE_TIME);
             // 从屏幕顶部淡入
@@ -1049,6 +1142,8 @@ function drawFrame(now) {
             if (timeSinceEnd <= 0) {
                 ctx.shadowColor = ctx.fillStyle;
                 ctx.shadowBlur = GLOW_BLUR;
+            } else {
+                ctx.shadowBlur = 0;
             }
 
             ctx.beginPath();
@@ -1057,7 +1152,7 @@ function drawFrame(now) {
             ctx.roundRect(x - THICKNESS / 2, y - length, THICKNESS, length, 5);
             ctx.fill();
         }
-    });
+    }
 
     ctx.shadowBlur = 0;
 }
