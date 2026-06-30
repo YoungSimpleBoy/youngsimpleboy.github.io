@@ -29,6 +29,7 @@
     const SOUNDFONT_FETCH_TIMEOUT_MS = 90000;
     const SOUNDFONT_LOAD_TIMEOUT_MS = 15000;
     const SOUNDFONT_PROGRESS_INTERVAL_MS = 250;
+    const GIT_LFS_POINTER_PREFIX = 'version https://git-lfs.github.com/spec/v1';
     const ENABLE_WORKLET_STORAGE_KEY = 'midiPlayerEnableFluidSynthWorklet';
     const MELODIC_CHANNELS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15];
     const INSTRUMENT_PROGRAMS = {
@@ -117,6 +118,23 @@
             });
     }
 
+    function assertSoundFontPayload(buffer, url) {
+        if (!buffer || buffer.byteLength === 0) {
+            throw new Error(`SoundFont 文件为空: ${url}`);
+        }
+
+        if (buffer.byteLength > 1024) return;
+
+        const text = new TextDecoder().decode(new Uint8Array(buffer));
+        if (!text.startsWith(GIT_LFS_POINTER_PREFIX)) return;
+
+        const declaredSize = text.match(/^size\s+(\d+)/m)?.[1];
+        const sizeText = declaredSize ? `，原始文件约 ${formatMegabytes(Number(declaredSize))}` : '';
+        throw new Error(
+            `SoundFont 是 Git LFS 指针文件${sizeText}，GitHub Pages 不会发布 LFS 原始文件: ${url}`
+        );
+    }
+
     async function fetchArrayBufferWithProgress(url, onProgress) {
         const Controller = global.AbortController;
         const controller = Controller ? new Controller() : null;
@@ -135,6 +153,7 @@
 
             if (!response.body || typeof response.body.getReader !== 'function') {
                 const buffer = await response.arrayBuffer();
+                assertSoundFontPayload(buffer, url);
                 onProgress?.({
                     url,
                     loaded: buffer.byteLength,
@@ -173,6 +192,7 @@
                 result.set(chunk, offset);
                 offset += chunk.byteLength;
             });
+            assertSoundFontPayload(result.buffer, url);
             onProgress?.({ url, loaded, total: total || loaded, done: true });
             return result.buffer;
         } catch (error) {

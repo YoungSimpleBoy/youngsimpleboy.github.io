@@ -1,1 +1,1 @@
-*.sf2 filter=lfs diff=lfs merge=lfs -text
+toolkit/midi_player/soundfonts/Arachno.sf2 filter=lfs diff=lfs merge=lfs -text
