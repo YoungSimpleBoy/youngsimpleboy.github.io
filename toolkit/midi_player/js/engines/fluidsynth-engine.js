@@ -25,11 +25,12 @@
     ];
     const SCHEDULE_INTERVAL_MS = 25;
     const SCHEDULE_AHEAD_SECONDS = 0.12;
-    const PLAYER_MONITOR_INTERVAL_MS = 25;
+    const PLAYER_MONITOR_INTERVAL_MS = 100;
     const SOUNDFONT_FETCH_TIMEOUT_MS = 90000;
     const SOUNDFONT_LOAD_TIMEOUT_MS = 15000;
     const SOUNDFONT_PROGRESS_INTERVAL_MS = 250;
     const GIT_LFS_POINTER_PREFIX = 'version https://git-lfs.github.com/spec/v1';
+    const END_EPSILON_SECONDS = 0.03;
     const ENABLE_WORKLET_STORAGE_KEY = 'midiPlayerEnableFluidSynthWorklet';
     const MELODIC_CHANNELS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15];
     const INSTRUMENT_PROGRAMS = {
@@ -866,19 +867,26 @@
         monitorMidiPlayer(generation) {
             if (!this.running || generation !== this.generation) return;
 
-            const tick = this.readPlayerCurrentTick();
-            if (
-                this.loopEnabled &&
-                Number.isFinite(tick) &&
-                tick < this.lastPlayerTick
-            ) {
-                this.position = 0;
-                this.startedAt = this.audioContext.currentTime;
-                this.onLoop();
+            if (this.loopEnabled) {
+                const tick = this.readPlayerCurrentTick();
+                if (Number.isFinite(tick) && tick < this.lastPlayerTick) {
+                    this.position = 0;
+                    this.startedAt = this.audioContext.currentTime;
+                    this.onLoop();
+                }
+                if (Number.isFinite(tick)) this.lastPlayerTick = tick;
             }
-            if (Number.isFinite(tick)) this.lastPlayerTick = tick;
 
             if (!this.isPlayerStillPlaying()) {
+                const position = this.getCurrentTime();
+                if (position < this.duration - END_EPSILON_SECONDS) {
+                    this.playerMonitorTimer = global.setTimeout(
+                        () => this.monitorMidiPlayer(generation),
+                        PLAYER_MONITOR_INTERVAL_MS
+                    );
+                    return;
+                }
+
                 this.running = false;
                 this.position = this.duration;
                 this.clearPlayerMonitor();
@@ -1006,7 +1014,8 @@
                     this.onLoop();
                     this.restartScheduler();
                 } else {
-                    this.stop(true);
+                    this.position = this.duration;
+                    this.stop(false);
                     this.onEnded();
                 }
                 return;

@@ -332,12 +332,29 @@
     function parseMidiGrid(midi) {
         const lines = [];
         const ppq = midi.header.ppq || 480;
-        const tempos = midi.header.tempos && midi.header.tempos.length > 0
+        const tempos = (midi.header.tempos && midi.header.tempos.length > 0
             ? midi.header.tempos
-            : [{ ticks: 0, bpm: 120 }];
-        const timeSignatures = midi.header.timeSignatures && midi.header.timeSignatures.length > 0
+            : [{ ticks: 0, bpm: 120 }])
+            .map(tempo => ({
+                ticks: Math.max(0, tempo.ticks || 0),
+                bpm: tempo.bpm > 0 ? tempo.bpm : 120
+            }))
+            .sort((a, b) => a.ticks - b.ticks);
+        const timeSignatures = (midi.header.timeSignatures && midi.header.timeSignatures.length > 0
             ? midi.header.timeSignatures
-            : [{ ticks: 0, timeSignature: [4, 4] }];
+            : [{ ticks: 0, timeSignature: [4, 4] }])
+            .map(signature => ({
+                ...signature,
+                ticks: Math.max(0, signature.ticks || 0)
+            }))
+            .sort((a, b) => a.ticks - b.ticks);
+
+        if (tempos.length === 0 || tempos[0].ticks > 0) {
+            tempos.unshift({ ticks: 0, bpm: 120 });
+        }
+        if (timeSignatures.length === 0 || timeSignatures[0].ticks > 0) {
+            timeSignatures.unshift({ ticks: 0, timeSignature: [4, 4] });
+        }
 
         function getSecondsFromTick(targetTick) {
             let time = 0;
@@ -405,7 +422,23 @@
             measureCount++;
         }
 
-        return lines;
+        return lines
+            .filter(line => Number.isFinite(line.time))
+            .sort((a, b) => (
+                a.time - b.time ||
+                (a.isMeasure === b.isMeasure ? 0 : (a.isMeasure ? -1 : 1))
+            ))
+            .reduce((deduped, line) => {
+                const previous = deduped[deduped.length - 1];
+                if (previous && Math.abs(previous.time - line.time) < 0.000001) {
+                    if (line.isMeasure && !previous.isMeasure) {
+                        deduped[deduped.length - 1] = line;
+                    }
+                    return deduped;
+                }
+                deduped.push(line);
+                return deduped;
+            }, []);
     }
 
     function createPlaybackSource(midi, arrayBuffer, trackOrder = null) {

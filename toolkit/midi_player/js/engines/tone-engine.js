@@ -103,6 +103,7 @@
             this.loopEnabled = false;
             this.running = false;
             this.position = 0;
+            this.duration = 0;
 
             this.masterVolume = new Tone.Volume(-6).toDestination();
             this.reverb = new Tone.Reverb({ decay: 2, wet: 0.2 }).connect(this.masterVolume);
@@ -114,6 +115,10 @@
             this.notes = notes || [];
             this.tracks = tracks || [];
             this.position = 0;
+            this.duration = this.notes.reduce(
+                (max, note) => Math.max(max, note.time + note.duration),
+                0
+            );
         }
 
         resolveTrackInstrumentType(track) {
@@ -322,8 +327,7 @@
                 }
             });
 
-            const lastNote = this.notes[this.notes.length - 1];
-            const endTime = this.toTransportTime(lastNote.time + 0.5);
+            const endTime = this.toTransportTime(this.duration);
             Tone.Transport.loop = false;
             Tone.Transport.schedule(() => {
                 if (!this.running) return;
@@ -333,7 +337,8 @@
                     this.onLoop();
                     this.scheduleFrom(0);
                 } else {
-                    this.stop(true);
+                    this.position = this.duration;
+                    this.stop(false);
                     this.onEnded();
                 }
             }, endTime);

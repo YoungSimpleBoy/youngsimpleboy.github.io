@@ -36,6 +36,15 @@ const THICKNESS = 8;   // 音符厚度
 const MARGIN = 20;      // 边距
 const FADE_TIME = 3.3;       // 音符淡出时间（秒）
 const MAX_CANVAS_PIXEL_RATIO = 2;
+const VISUAL_CLOCK_SNAP_THRESHOLD = 0.18;
+const VISUAL_CLOCK_BACKWARD_SNAP_THRESHOLD = 0.75;
+const VISUAL_CLOCK_MAX_FRAME_DELTA = 0.1;
+const VISUAL_CLOCK_CORRECTION_FACTOR = 0.18;
+const PROGRESS_UI_INTERVAL_MS = 1000;
+const DESKTOP_SIMPLIFIED_NOTE_THRESHOLD = 620;
+const MOBILE_SIMPLIFIED_NOTE_THRESHOLD = 180;
+const LOW_SPEED_SIMPLIFIED_THRESHOLD = 420;
+const MOBILE_LOW_SPEED_SIMPLIFIED_THRESHOLD = 110;
 
 // ==================== DOM ====================
 const canvas = document.getElementById('canvas');
@@ -54,6 +63,7 @@ const statusEl = document.getElementById('status');
 const themeToggle = document.getElementById('themeToggle');
 
 let canvasPixelRatio = 1;
+let visualBackgroundCache = null;
 
 function getFadeInDistance() {
     return WIDTH;
@@ -71,6 +81,7 @@ function applyCanvasResolution() {
     canvas.style.width = `${WIDTH}px`;
     canvas.style.height = `${HEIGHT}px`;
     ctx.setTransform(canvasPixelRatio, 0, 0, canvasPixelRatio, 0, 0);
+    visualBackgroundCache = null;
 }
 
 applyCanvasResolution();
@@ -213,6 +224,15 @@ let currentTime = 0;
 let totalDuration = 0;
 let isDraggingProgress = false;
 let isLoopEnabled = false;
+let visualClockState = {
+    initialized: false,
+    time: 0,
+    lastFrameMs: 0
+};
+let lastProgressUiUpdateMs = 0;
+let lastRenderedCurrentTimeText = '';
+let lastRenderedTotalTimeText = '';
+let lastRenderedProgressValue = -1;
 
 // ==================== 音轨控制 ====================
 const trackHues = [200, 280, 120, 30, 320, 60]; // 音轨颜色
@@ -706,6 +726,7 @@ async function switchAudioEngine(selectionValue) {
         audioEngine.load(notes, trackInfo);
         await audioEngine.preloadTracks(trackInfo);
         currentTime = audioEngine.seek(resumePosition);
+        resetVisualClock(currentTime);
         if (audioEngineState) {
             audioEngineState.textContent = engineName === 'fluidsynth'
                 ? soundFontLabel
@@ -721,6 +742,7 @@ async function switchAudioEngine(selectionValue) {
         await audioEngine.switchTo(previousName === 'fluidsynth' ? 'tone' : previousName);
         audioEngine.load(notes, trackInfo);
         currentTime = audioEngine.seek(resumePosition);
+        resetVisualClock(currentTime);
         audioEngineSelect.value = getAudioEngineSelectionValue(audioEngine.getActiveName());
         if (audioEngineState) audioEngineState.textContent = '已回退快速模式';
         statusEl.textContent = `高质量引擎加载失败，已回退 Tone.js：${error.message}`;
@@ -745,6 +767,7 @@ function applyPlaybackRate() {
     }
 
     currentTime = audioEngine.setPlaybackRate(playbackRate);
+    resetVisualClock(currentTime);
 }
 
 if (playbackRateSlider) {
@@ -805,20 +828,100 @@ function formatTime(seconds) {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
-function updateProgressUI() {
+function getFrameTimestamp(frameMs = performance.now()) {
+    return Number.isFinite(frameMs) ? frameMs : performance.now();
+}
+
+function resetVisualClock(time = currentTime, frameMs = performance.now()) {
+    visualClockState.initialized = true;
+    visualClockState.time = Math.max(0, time || 0);
+    visualClockState.lastFrameMs = getFrameTimestamp(frameMs);
+}
+
+function clearVisualClock() {
+    visualClockState.initialized = false;
+    visualClockState.time = 0;
+    visualClockState.lastFrameMs = 0;
+}
+
+function getSmoothedPlaybackTime(audioTime, frameMs = performance.now()) {
+    const safeAudioTime = Math.max(0, Math.min(totalDuration || Infinity, audioTime || 0));
+    const timestamp = getFrameTimestamp(frameMs);
+
+    if (!visualClockState.initialized) {
+        resetVisualClock(safeAudioTime, timestamp);
+        return safeAudioTime;
+    }
+
+    const frameDelta = Math.max(
+        0,
+        Math.min(VISUAL_CLOCK_MAX_FRAME_DELTA, (timestamp - visualClockState.lastFrameMs) / 1000)
+    );
+    visualClockState.lastFrameMs = timestamp;
+
+    const predictedTime = visualClockState.time + frameDelta * playbackRate;
+    const drift = safeAudioTime - predictedTime;
+    const movedFarBackward = safeAudioTime < visualClockState.time - VISUAL_CLOCK_BACKWARD_SNAP_THRESHOLD;
+
+    if (movedFarBackward || drift > VISUAL_CLOCK_SNAP_THRESHOLD) {
+        visualClockState.time = safeAudioTime;
+        return safeAudioTime;
+    }
+
+    const maxCorrection = Math.max(0.004, frameDelta * 0.55);
+    const correction = Math.max(
+        -maxCorrection,
+        Math.min(maxCorrection, drift * VISUAL_CLOCK_CORRECTION_FACTOR)
+    );
+    visualClockState.time = Math.min(
+        totalDuration || Infinity,
+        Math.max(visualClockState.time, predictedTime + correction)
+    );
+    return visualClockState.time;
+}
+
+function updateProgressUI(force = false) {
+    const timestamp = performance.now();
+    if (
+        !force &&
+        isPlaying &&
+        timestamp - lastProgressUiUpdateMs < PROGRESS_UI_INTERVAL_MS
+    ) {
+        return;
+    }
+    lastProgressUiUpdateMs = timestamp;
+
     if (totalDuration > 0) {
         const progress = (currentTime / totalDuration) * 100;
-        if (!isDraggingProgress) {
+        const roundedProgress = Math.round(progress * 10) / 10;
+        if (!isDraggingProgress && (force || Math.abs(roundedProgress - lastRenderedProgressValue) >= 0.1)) {
             progressSlider.value = progress;
+            lastRenderedProgressValue = roundedProgress;
         }
-        currentTimeEl.textContent = formatTime(currentTime);
-        totalTimeEl.textContent = formatTime(totalDuration);
+
+        const currentText = formatTime(currentTime);
+        const totalText = formatTime(totalDuration);
+        if (force || currentText !== lastRenderedCurrentTimeText) {
+            currentTimeEl.textContent = currentText;
+            lastRenderedCurrentTimeText = currentText;
+        }
+        if (force || totalText !== lastRenderedTotalTimeText) {
+            totalTimeEl.textContent = totalText;
+            lastRenderedTotalTimeText = totalText;
+        }
     } else {
         if (!isDraggingProgress) {
             progressSlider.value = 0;
+            lastRenderedProgressValue = 0;
         }
-        currentTimeEl.textContent = '0:00';
-        totalTimeEl.textContent = '0:00';
+        if (force || lastRenderedCurrentTimeText !== '0:00') {
+            currentTimeEl.textContent = '0:00';
+            lastRenderedCurrentTimeText = '0:00';
+        }
+        if (force || lastRenderedTotalTimeText !== '0:00') {
+            totalTimeEl.textContent = '0:00';
+            lastRenderedTotalTimeText = '0:00';
+        }
     }
 }
 
@@ -848,13 +951,14 @@ function handleSeekEnd() {
         currentTime = snappedTime;
         progressSlider.value = (currentTime / totalDuration) * 100;
         audioEngine.seek(currentTime);
+        resetVisualClock(currentTime);
 
         if (!isPlaying) {
             drawFrame(currentTime);
         }
     }
     isDraggingProgress = false;
-    updateProgressUI();
+    updateProgressUI(true);
 }
 
 progressSlider.addEventListener('mouseup', handleSeekEnd);
@@ -868,8 +972,9 @@ function resetPlaybackState(resetToStart = true) {
     if (resetToStart) {
         currentTime = 0;
     }
+    clearVisualClock();
     updatePlayButtonIcon(false);
-    updateProgressUI();
+    updateProgressUI(true);
 }
 
 function clearLoadedMidiData() {
@@ -878,6 +983,7 @@ function clearLoadedMidiData() {
     maxNoteDuration = 0;
     totalDuration = 0;
     currentTime = 0;
+    clearVisualClock();
     playBtn.disabled = true;
     // 清除音轨信息和文件元信息
     trackInfo = [];
@@ -926,7 +1032,8 @@ async function applyLoadedMidi(midi, arrayBuffer, fileName, statusName = fileNam
 
     playBtn.disabled = notes.length === 0;
     statusEl.textContent = loadStatus;
-    updateProgressUI();
+    clearVisualClock();
+    updateProgressUI(true);
     drawFrame(0);
 }
 
@@ -979,15 +1086,23 @@ exampleSelect.addEventListener('change', (e) => {
 async function startPlay() {
     if (notes.length === 0) return;
 
+    if (totalDuration > 0 && currentTime >= totalDuration - 0.02) {
+        currentTime = 0;
+        audioEngine.seek(0);
+        resetVisualClock(0);
+        updateProgressUI(true);
+    }
+
     applyPlaybackRate();
     const startOffset = currentTime;
     const playbackOptions = {
         loop: isLoopEnabled,
         onLoop() {
             currentTime = 0;
+            resetVisualClock(0);
         },
         onEnded() {
-            stopPlay(true);
+            finishPlayAtEnd();
         }
     };
 
@@ -1000,6 +1115,7 @@ async function startPlay() {
         await audioEngine.switchTo('tone');
         audioEngine.load(notes, trackInfo);
         currentTime = audioEngine.seek(startOffset);
+        resetVisualClock(currentTime);
         if (audioEngineSelect) audioEngineSelect.value = 'tone';
         if (audioEngineState) audioEngineState.textContent = '已回退快速模式';
         statusEl.textContent = `FluidSynth 启动失败，已回退 Tone.js：${error.message}`;
@@ -1008,6 +1124,7 @@ async function startPlay() {
 
     isPlaying = true;
     currentTime = startOffset;
+    resetVisualClock(currentTime);
     updatePlayButtonIcon(true);
     statusEl.textContent = '播放中...';
 
@@ -1016,6 +1133,7 @@ async function startPlay() {
 
 function pausePlay() {
     currentTime = audioEngine.pause();
+    resetVisualClock(currentTime);
     isPlaying = false;
     updatePlayButtonIcon(false);
     statusEl.textContent = '已暂停';
@@ -1027,6 +1145,19 @@ function stopPlay(isEnd = false) {
 
     if (notes.length > 0) {
         drawFrame(0);
+    }
+}
+
+function finishPlayAtEnd() {
+    isPlaying = false;
+    currentTime = totalDuration;
+    resetVisualClock(currentTime);
+    updatePlayButtonIcon(false);
+    updateProgressUI(true);
+    statusEl.textContent = '播放完毕';
+
+    if (notes.length > 0) {
+        drawFrame(currentTime);
     }
 }
 
@@ -1046,10 +1177,11 @@ playBtn.addEventListener('click', async () => {
 });
 
 // ==================== 渲染 ====================
-function renderLoop() {
+function renderLoop(frameMs) {
     if (!isPlaying) return;
 
-    currentTime = Math.min(totalDuration, audioEngine.getCurrentTime());
+    const audioTime = Math.min(totalDuration, audioEngine.getCurrentTime());
+    currentTime = Math.min(totalDuration, getSmoothedPlaybackTime(audioTime, frameMs));
     updateProgressUI();
     drawFrame(currentTime);
 
@@ -1061,6 +1193,261 @@ function midiToY(midi) {
     const availableHeight = HEIGHT - 2 * MARGIN;
     const normalized = (midi - range.min) / (range.max - range.min);
     return MARGIN + (1 - normalized) * availableHeight;
+}
+
+function getVisualizerTheme(isLight) {
+    if (isLight) {
+        return {
+            isLight: true,
+            gridColor: 'rgba(92, 65, 28, 0.15)',
+            centerLineColor: 'rgba(79, 43, 13, 0.72)',
+            centerLineGlow: 'rgba(187, 132, 48, 0.18)',
+            textColor: 'rgba(67, 42, 16, 0.68)',
+            measureColor: 'rgba(91, 52, 16, 0.42)',
+            beatColor: 'rgba(102, 76, 38, 0.18)',
+            labelFont: '12px Georgia, "Times New Roman", serif',
+            measureFont: 'bold 13px Georgia, "Times New Roman", serif'
+        };
+    }
+
+    return {
+        isLight: false,
+        gridColor: 'rgba(255,255,255,0.08)',
+        centerLineColor: 'rgba(255,255,255,0.3)',
+        centerLineGlow: 'rgba(120, 150, 255, 0.18)',
+        textColor: 'rgba(255,255,255,0.5)',
+        measureColor: 'rgba(255,255,255,0.3)',
+        beatColor: 'rgba(255,255,255,0.12)',
+        labelFont: '12px Segoe UI, sans-serif',
+        measureFont: 'bold 13px "Segoe UI", Tahoma, sans-serif'
+    };
+}
+
+function paintVisualizerBackground(targetCtx, theme) {
+    if (!theme.isLight) {
+        const darkBg = targetCtx.createRadialGradient(WIDTH * 0.5, HEIGHT * 0.45, 0, WIDTH * 0.5, HEIGHT * 0.45, Math.max(WIDTH, HEIGHT) * 0.75);
+        darkBg.addColorStop(0, '#090d18');
+        darkBg.addColorStop(0.62, '#02040a');
+        darkBg.addColorStop(1, '#000000');
+        targetCtx.fillStyle = darkBg;
+        targetCtx.fillRect(0, 0, WIDTH, HEIGHT);
+        return;
+    }
+
+    const parchment = targetCtx.createLinearGradient(0, 0, WIDTH, HEIGHT);
+    parchment.addColorStop(0, '#f4e8c8');
+    parchment.addColorStop(0.5, '#e8d2a0');
+    parchment.addColorStop(1, '#d7b877');
+    targetCtx.fillStyle = parchment;
+    targetCtx.fillRect(0, 0, WIDTH, HEIGHT);
+
+    const centerGlow = targetCtx.createRadialGradient(WIDTH * 0.42, HEIGHT * 0.38, 0, WIDTH * 0.42, HEIGHT * 0.38, Math.max(WIDTH, HEIGHT) * 0.72);
+    centerGlow.addColorStop(0, 'rgba(255, 250, 229, 0.58)');
+    centerGlow.addColorStop(0.54, 'rgba(255, 244, 208, 0.16)');
+    centerGlow.addColorStop(1, 'rgba(88, 54, 18, 0.20)');
+    targetCtx.fillStyle = centerGlow;
+    targetCtx.fillRect(0, 0, WIDTH, HEIGHT);
+
+    const stains = [
+        [0.14, 0.18, 0.28, 'rgba(110, 72, 26, 0.075)'],
+        [0.82, 0.22, 0.22, 'rgba(92, 56, 18, 0.055)'],
+        [0.72, 0.78, 0.30, 'rgba(124, 80, 24, 0.06)'],
+        [0.28, 0.86, 0.24, 'rgba(74, 48, 18, 0.05)']
+    ];
+
+    stains.forEach(([xRatio, yRatio, rRatio, color]) => {
+        const radius = Math.max(WIDTH, HEIGHT) * rRatio;
+        const stain = targetCtx.createRadialGradient(WIDTH * xRatio, HEIGHT * yRatio, 0, WIDTH * xRatio, HEIGHT * yRatio, radius);
+        stain.addColorStop(0, color);
+        stain.addColorStop(1, 'rgba(110, 72, 26, 0)');
+        targetCtx.fillStyle = stain;
+        targetCtx.fillRect(0, 0, WIDTH, HEIGHT);
+    });
+
+    targetCtx.save();
+    targetCtx.strokeStyle = 'rgba(96, 62, 22, 0.16)';
+    targetCtx.lineWidth = 1;
+    targetCtx.strokeRect(14, 14, WIDTH - 28, HEIGHT - 28);
+    targetCtx.strokeStyle = 'rgba(255, 247, 219, 0.28)';
+    targetCtx.strokeRect(19, 19, WIDTH - 38, HEIGHT - 38);
+    targetCtx.restore();
+}
+
+function drawVisualizerBackground(theme) {
+    const themeKey = theme.isLight ? 'light' : 'dark';
+    const cacheKey = `${themeKey}:${WIDTH}:${HEIGHT}:${canvasPixelRatio}`;
+
+    if (!visualBackgroundCache || visualBackgroundCache.key !== cacheKey) {
+        const cacheCanvas = document.createElement('canvas');
+        cacheCanvas.width = Math.round(WIDTH * canvasPixelRatio);
+        cacheCanvas.height = Math.round(HEIGHT * canvasPixelRatio);
+        const cacheCtx = cacheCanvas.getContext('2d');
+        cacheCtx.setTransform(canvasPixelRatio, 0, 0, canvasPixelRatio, 0, 0);
+        paintVisualizerBackground(cacheCtx, theme);
+        visualBackgroundCache = { key: cacheKey, canvas: cacheCanvas };
+    }
+
+    ctx.drawImage(visualBackgroundCache.canvas, 0, 0, WIDTH, HEIGHT);
+}
+
+function strokeGuideLine(x1, y1, x2, y2, color, width) {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+}
+
+function snapStrokePosition(value, lineWidth = 1) {
+    const pixelWidth = Math.max(1, Math.round(lineWidth * canvasPixelRatio));
+    const offset = pixelWidth % 2 === 1 ? 0.5 : 0;
+    return (Math.round(value * canvasPixelRatio) + offset) / canvasPixelRatio;
+}
+
+function drawPlaybackLine(theme, isHorizontal, hitX, hitY) {
+    ctx.save();
+    ctx.lineCap = 'round';
+
+    if (isHorizontal) {
+        const glowWidth = theme.isLight ? 8 : 7;
+        const lineWidth = theme.isLight ? 2.5 : 2;
+        const glowX = snapStrokePosition(hitX, glowWidth);
+        const lineX = snapStrokePosition(hitX, lineWidth);
+        strokeGuideLine(glowX, 0, glowX, HEIGHT, theme.centerLineGlow, glowWidth);
+        strokeGuideLine(lineX, 0, lineX, HEIGHT, theme.centerLineColor, lineWidth);
+    } else {
+        const glowWidth = theme.isLight ? 8 : 7;
+        const lineWidth = theme.isLight ? 2.5 : 2;
+        const glowY = snapStrokePosition(hitY, glowWidth);
+        const lineY = snapStrokePosition(hitY, lineWidth);
+        strokeGuideLine(0, glowY, WIDTH, glowY, theme.centerLineGlow, glowWidth);
+        strokeGuideLine(0, lineY, WIDTH, lineY, theme.centerLineColor, lineWidth);
+    }
+
+    ctx.restore();
+}
+
+function getTrackHueForNote(note) {
+    return trackInfo.length > 0 && trackInfo[note.track]
+        ? trackInfo[note.track].hue
+        : trackHues[note.track % trackHues.length];
+}
+
+function getNoteVisualStyle(note, timeSinceEnd, alpha, theme, glowBlur, simplified = false) {
+    const fadeRatio = Math.max(0, 1 - timeSinceEnd / FADE_TIME);
+
+    if (timeSinceEnd > 0) {
+        if (theme.isLight) {
+            return {
+                top: `rgba(126, 96, 52, ${alpha * 0.34})`,
+                middle: `rgba(84, 58, 28, ${alpha * 0.30})`,
+                bottom: `rgba(54, 34, 16, ${alpha * 0.22})`,
+                stroke: `rgba(67, 43, 18, ${alpha * 0.18})`,
+                shadowColor: 'rgba(74, 48, 18, 0.18)',
+                shadowBlur: simplified ? 0 : 2,
+                shadowOffsetY: simplified ? 0 : 1,
+                strokeWidth: simplified ? 0 : 1,
+                flat: simplified
+            };
+        }
+
+        const lightness = 30 + fadeRatio * 20;
+        return {
+            top: `hsla(0, 0%, ${lightness + 8}%, ${alpha})`,
+            middle: `hsla(0, 0%, ${lightness}%, ${alpha})`,
+            bottom: `hsla(0, 0%, ${Math.max(12, lightness - 10)}%, ${alpha})`,
+            stroke: `rgba(255, 255, 255, ${alpha * 0.12})`,
+            shadowColor: 'transparent',
+            shadowBlur: 0,
+            shadowOffsetY: 0,
+            strokeWidth: 0,
+            flat: simplified
+        };
+    }
+
+    const hue = getTrackHueForNote(note);
+    const velocity = Number.isFinite(note.velocity) ? note.velocity : 0.8;
+
+    if (theme.isLight) {
+        const lightness = 38 + velocity * 13;
+        return {
+            top: `hsla(${hue}, 62%, ${Math.min(72, lightness + 16)}%, ${alpha})`,
+            middle: `hsla(${hue}, 64%, ${lightness}%, ${alpha})`,
+            bottom: `hsla(${hue}, 58%, ${Math.max(24, lightness - 12)}%, ${alpha})`,
+            stroke: `hsla(${hue}, 64%, 24%, ${alpha * 0.58})`,
+            shadowColor: `rgba(62, 39, 14, ${alpha * 0.22})`,
+            shadowBlur: simplified ? 0 : (window.innerWidth <= 768 ? 2 : 4),
+            shadowOffsetY: simplified ? 0 : 2,
+            strokeWidth: simplified ? 0 : 1,
+            flat: simplified
+        };
+    }
+
+    const lightness = 58 + velocity * 10;
+    return {
+        top: `hsla(${hue}, 100%, ${Math.min(78, lightness + 10)}%, ${alpha})`,
+        middle: `hsla(${hue}, 100%, ${lightness}%, ${alpha})`,
+        bottom: `hsla(${hue}, 100%, ${Math.max(38, lightness - 14)}%, ${alpha})`,
+        stroke: `hsla(${hue}, 100%, 76%, ${alpha * 0.42})`,
+        shadowColor: `hsla(${hue}, 100%, 60%, ${alpha})`,
+        shadowBlur: simplified ? 0 : glowBlur,
+        shadowOffsetY: 0,
+        strokeWidth: 0,
+        flat: simplified
+    };
+}
+
+function drawNoteBlock(x, y, width, height, style, isHorizontal) {
+    if (style.flat && style.shadowBlur === 0 && style.strokeWidth === 0) {
+        ctx.fillStyle = style.middle;
+        ctx.fillRect(x, y, width, height);
+        return;
+    }
+
+    const radius = Math.min(6, Math.max(1, Math.abs(width) / 2), Math.max(1, Math.abs(height) / 2));
+    let fillStyle = style.middle;
+
+    if (!style.flat) {
+        const gradient = isHorizontal
+            ? ctx.createLinearGradient(x, y, x, y + height)
+            : ctx.createLinearGradient(x, y, x + width, y);
+
+        gradient.addColorStop(0, style.top);
+        gradient.addColorStop(0.52, style.middle);
+        gradient.addColorStop(1, style.bottom);
+        fillStyle = gradient;
+    }
+
+    ctx.save();
+    ctx.shadowColor = style.shadowColor;
+    ctx.shadowBlur = style.shadowBlur;
+    ctx.shadowOffsetY = style.shadowOffsetY;
+    ctx.fillStyle = fillStyle;
+    ctx.beginPath();
+    ctx.roundRect(x, y, width, height, radius);
+    ctx.fill();
+
+    if (style.strokeWidth > 0) {
+        ctx.shadowBlur = 0;
+        ctx.shadowOffsetY = 0;
+        ctx.strokeStyle = style.stroke;
+        ctx.lineWidth = style.strokeWidth;
+        ctx.stroke();
+    }
+    ctx.restore();
+}
+
+function shouldUseSimplifiedNoteRendering(visibleNoteCandidates, isMobile) {
+    const baseThreshold = isMobile
+        ? MOBILE_SIMPLIFIED_NOTE_THRESHOLD
+        : DESKTOP_SIMPLIFIED_NOTE_THRESHOLD;
+    if (visibleNoteCandidates >= baseThreshold) return true;
+
+    const lowSpeedThreshold = isMobile
+        ? MOBILE_LOW_SPEED_SIMPLIFIED_THRESHOLD
+        : LOW_SPEED_SIMPLIFIED_THRESHOLD;
+    return SPEED <= 80 && visibleNoteCandidates >= lowSpeedThreshold;
 }
 
 function drawFrame(now) {
@@ -1080,15 +1467,8 @@ function drawFrame(now) {
 
     // 主题颜色
     const isLight = isLightTheme();
-    const bgColor = isLight ? '#ffffff' : '#000000';
-    const gridColor = isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.08)';
-    const centerLineColor = isLight ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.3)';
-    const textColor = isLight ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.5)';
-    const measureColor = isLight ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.3)';
-    const beatColor = isLight ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.12)';
-
-    ctx.fillStyle = bgColor;
-    ctx.fillRect(0, 0, WIDTH, HEIGHT);
+    const visualTheme = getVisualizerTheme(isLight);
+    drawVisualizerBackground(visualTheme);
 
     const isHorizontal = flowDirection === 'horizontal';
 
@@ -1097,45 +1477,37 @@ function drawFrame(now) {
     const hitY = HEIGHT * 0.8;       // 垂直模式：在屏幕偏下方 (留出底部空间显示音名)
 
     // 画判定线
-    ctx.strokeStyle = centerLineColor;
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    if (isHorizontal) {
-        ctx.moveTo(hitX, 0); ctx.lineTo(hitX, HEIGHT);
-    } else {
-        ctx.moveTo(0, hitY); ctx.lineTo(WIDTH, hitY);
-    }
-    ctx.stroke();
+    drawPlaybackLine(visualTheme, isHorizontal, hitX, hitY);
 
     // 画音高网格线
     const range = window.midiRange || { min: 48, max: 84 };
-    ctx.strokeStyle = gridColor;
+    ctx.strokeStyle = visualTheme.gridColor;
     ctx.lineWidth = 1;
-    ctx.font = '12px Segoe UI, sans-serif';
+    ctx.font = visualTheme.labelFont;
 
     for (let i = range.min; i <= range.max; i++) {
         ctx.beginPath();
         if (isHorizontal) {
-            const y = midiToY(i);
+            const y = snapStrokePosition(midiToY(i), 1);
             ctx.moveTo(0, y);
             ctx.lineTo(WIDTH, y);
             ctx.stroke();
 
             if (shouldDrawExtra && i % 12 === 0) {
-                ctx.fillStyle = textColor;
+                ctx.fillStyle = visualTheme.textColor;
                 ctx.textAlign = 'right';
                 ctx.textBaseline = 'middle';
                 ctx.fillText(midiToNoteName(i), hitX - 10, y);
             }
         } else {
             // 垂直模式的网格线
-            const x = midiToX(i);
+            const x = snapStrokePosition(midiToX(i), 1);
             ctx.moveTo(x, 0);
             ctx.lineTo(x, HEIGHT);
             ctx.stroke();
 
             if (shouldDrawExtra && i % 12 === 0) {
-                ctx.fillStyle = textColor;
+                ctx.fillStyle = visualTheme.textColor;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'top';
                 ctx.fillText(midiToNoteName(i), x, hitY + 10);
@@ -1150,34 +1522,38 @@ function drawFrame(now) {
             const line = gridLines[lineIndex];
             const timeDelta = line.time - now;
             if (isHorizontal) {
-                const x = hitX + timeDelta * SPEED;
-                if (x >= -20 && x <= WIDTH + 20) {
-                    ctx.strokeStyle = line.isMeasure ? measureColor : beatColor;
-                    ctx.lineWidth = line.isMeasure ? 2 : 1;
+                const rawX = hitX + timeDelta * SPEED;
+                if (rawX >= -20 && rawX <= WIDTH + 20) {
+                    const lineWidth = line.isMeasure ? 2 : 1;
+                    const x = snapStrokePosition(rawX, lineWidth);
+                    ctx.strokeStyle = line.isMeasure ? visualTheme.measureColor : visualTheme.beatColor;
+                    ctx.lineWidth = lineWidth;
                     ctx.beginPath();
                     ctx.moveTo(x, 0); ctx.lineTo(x, HEIGHT);
                     ctx.stroke();
 
                     if (line.isMeasure && line.label) {
-                        ctx.fillStyle = textColor;
-                        ctx.font = 'bold 13px "Segoe UI", Tahoma, sans-serif';
+                        ctx.fillStyle = visualTheme.textColor;
+                        ctx.font = visualTheme.measureFont;
                         ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
                         ctx.fillText(line.label, x + 10, 22);
                     }
                 }
             } else {
                 // 垂直模式的小节线 (从上往下掉)
-                const y = hitY - timeDelta * SPEED;
-                if (y >= -20 && y <= HEIGHT + 20) {
-                    ctx.strokeStyle = line.isMeasure ? measureColor : beatColor;
-                    ctx.lineWidth = line.isMeasure ? 2 : 1;
+                const rawY = hitY - timeDelta * SPEED;
+                if (rawY >= -20 && rawY <= HEIGHT + 20) {
+                    const lineWidth = line.isMeasure ? 2 : 1;
+                    const y = snapStrokePosition(rawY, lineWidth);
+                    ctx.strokeStyle = line.isMeasure ? visualTheme.measureColor : visualTheme.beatColor;
+                    ctx.lineWidth = lineWidth;
                     ctx.beginPath();
                     ctx.moveTo(0, y); ctx.lineTo(WIDTH, y);
                     ctx.stroke();
 
                     if (line.isMeasure && line.label) {
-                        ctx.fillStyle = textColor;
-                        ctx.font = 'bold 13px "Segoe UI", Tahoma, sans-serif';
+                        ctx.fillStyle = visualTheme.textColor;
+                        ctx.font = visualTheme.measureFont;
                         ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
                         ctx.fillText(line.label, 10, y - 5);
                     }
@@ -1188,9 +1564,13 @@ function drawFrame(now) {
 
     // 画音符
     const isMobile = window.innerWidth <= 768;
-    const GLOW_BLUR = isMobile ? 10 : 30; // 手机端性能优化
     const fadeInDistance = getFadeInDistance();
     const noteWindow = getVisibleNoteWindow(now, isHorizontal, hitX, hitY);
+    const visibleNoteCandidates = noteWindow.end - noteWindow.start;
+    const simplifiedNotes = shouldUseSimplifiedNoteRendering(visibleNoteCandidates, isMobile);
+    const GLOW_BLUR = simplifiedNotes
+        ? (visualTheme.isLight ? 0 : (isMobile ? 4 : 10))
+        : (isMobile ? 10 : 30);
 
     for (let noteIndex = noteWindow.start; noteIndex < noteWindow.end; noteIndex++) {
         const note = notes[noteIndex];
@@ -1205,21 +1585,6 @@ function drawFrame(now) {
         // 检查音轨是否启用
         if (trackInfo.length > 0 && !trackInfo[note.track]?.enabled) continue;
 
-        // 计算颜色
-        let hue, lightness, saturation;
-        if (timeSinceEnd > 0) {
-            hue = isLight ? 0 : 0;
-            saturation = '0%';
-            lightness = isLight ? 70 + (1 - timeSinceEnd / FADE_TIME) * 15 : 30 + (1 - timeSinceEnd / FADE_TIME) * 20;
-        } else {
-            const trackHue = trackInfo.length > 0 && trackInfo[note.track] ? trackInfo[note.track].hue : trackHues[note.track % trackHues.length];
-            hue = trackHue;
-            saturation = '100%';
-            lightness = isLight
-                ? 46 + note.velocity * 10
-                : 58 + note.velocity * 10;
-        }
-
         let alpha = 1;
 
         if (isHorizontal) {
@@ -1231,17 +1596,15 @@ function drawFrame(now) {
             if (timeSinceEnd > 0) alpha = Math.max(0, 1 - timeSinceEnd / FADE_TIME);
             if (x > hitX && x < WIDTH) alpha = Math.max(0, (WIDTH - x) / fadeInDistance);
 
-            ctx.fillStyle = `hsla(${hue}, ${timeSinceEnd > 0 ? '0%' : saturation}, ${lightness}%, ${alpha})`;
-            if (timeSinceEnd <= 0) {
-                ctx.shadowColor = ctx.fillStyle;
-                ctx.shadowBlur = GLOW_BLUR;
-            } else {
-                ctx.shadowBlur = 0;
-            }
-
-            ctx.beginPath();
-            ctx.roundRect(x, y - THICKNESS / 2, length, THICKNESS, 5);
-            ctx.fill();
+            const style = getNoteVisualStyle(
+                note,
+                timeSinceEnd,
+                alpha,
+                visualTheme,
+                GLOW_BLUR,
+                simplifiedNotes
+            );
+            drawNoteBlock(x, y - THICKNESS / 2, Math.max(2, length), THICKNESS, style, true);
 
         } else {
             // === 垂直模式渲染逻辑 ===
@@ -1256,19 +1619,17 @@ function drawFrame(now) {
                 alpha = Math.min(1, Math.max(0, y / (HEIGHT * 0.25)));
             }
 
-            ctx.fillStyle = `hsla(${hue}, ${timeSinceEnd > 0 ? '0%' : saturation}, ${lightness}%, ${alpha})`;
-            if (timeSinceEnd <= 0) {
-                ctx.shadowColor = ctx.fillStyle;
-                ctx.shadowBlur = GLOW_BLUR;
-            } else {
-                ctx.shadowBlur = 0;
-            }
-
-            ctx.beginPath();
             // 垂直下落时，音符的头部（最先接触判定线的部分）在 y，尾部在 y - length（朝屏幕上方延伸）
             // 所以方块的起点Y坐标是 y - length，高度是 length
-            ctx.roundRect(x - THICKNESS / 2, y - length, THICKNESS, length, 5);
-            ctx.fill();
+            const style = getNoteVisualStyle(
+                note,
+                timeSinceEnd,
+                alpha,
+                visualTheme,
+                GLOW_BLUR,
+                simplifiedNotes
+            );
+            drawNoteBlock(x - THICKNESS / 2, y - length, THICKNESS, Math.max(2, length), style, false);
         }
     }
 
